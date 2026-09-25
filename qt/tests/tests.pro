@@ -1,0 +1,13 @@
+TEMPLATE = subdirs
+SUBDIRS = genomeformat findings analysisrunner texttable vcfconvert targets ensembl clinvarprocess testgenome chainlift compression
+genomeformat.file = tst_genomeformat.pro
+findings.file = tst_findings.pro
+analysisrunner.file = tst_analysisrunner.pro
+texttable.file = tst_texttable.pro
+vcfconvert.file = tst_vcfconvert.pro
+targets.file = tst_targets.pro
+ensembl.file = tst_ensembl.pro
+clinvarprocess.file = tst_clinvarprocess.pro
+testgenome.file = tst_testgenome.pro
+chainlift.file = tst_chainlift.pro
+compression.file = tst_compression.pro
