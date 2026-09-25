@@ -4,7 +4,7 @@
 # unit tests.
 TEMPLATE = app
 TARGET = genetic-health
-VERSION = 0.2.1
+VERSION = 0.2.2
 CONFIG += console warn_on
 CONFIG -= qt app_bundle
 DESTDIR = $$PWD/..

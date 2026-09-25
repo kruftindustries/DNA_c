@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "Downloader.h"
+#include "GzipStream.h"
 #include "EnsemblLookup.h"
 #include "TextTable.h"
 #include "ToolLocator.h"
@@ -175,6 +176,11 @@ bool runTool(const QString &tool, const QStringList &args, const Reporter &repor
     if (!stdoutFile.isEmpty())
         p.setStandardOutputFile(stdoutFile, QIODevice::Truncate);
     p.start(exe, args);
+    if (!p.waitForStarted(10000)) {
+        if (error)
+            *error = QStringLiteral("cannot start %1: %2").arg(exe, p.errorString());
+        return false;
+    }
     p.waitForFinished(-1);
     if (p.exitStatus() != QProcess::NormalExit || p.exitCode() != 0) {
         if (error)
@@ -206,15 +212,9 @@ bool setup(const QString &root, const Reporter &reporter, QString *error)
                 return false;
         }
         reporter.log(QStringLiteral("decompressing -> %1").arg(fa));
-        QProcess gunzip;
-        gunzip.setStandardOutputFile(fa, QIODevice::Truncate);
-        gunzip.start("gzip", {"-dc", gz});
-        gunzip.waitForFinished(-1);
-        if (gunzip.exitCode() != 0) {
-            if (error)
-                *error = QStringLiteral("gzip failed");
+        const auto progress = [&](qint64) { return !reporter.cancelled(); };
+        if (!GzipStream::decompressFile(gz, fa, progress, error))
             return false;
-        }
     }
     if (!QFileInfo(fa + ".fai").exists() && !runTool("samtools", {"faidx", fa}, reporter, error))
         return false;

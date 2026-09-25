@@ -8,6 +8,8 @@
 #include <QFile>
 #include <QIODevice>
 
+#include <functional>
+
 #include "third_party/miniz/miniz.h"
 
 class GzipStream : public QIODevice {
@@ -22,6 +24,15 @@ public:
     bool isSequential() const override { return true; }
     bool waitForReadyRead(int msecs) override;
     QString errorText() const { return m_error; }
+
+    // Decompress `gz` to `dest` in 4 MiB chunks, through a QSaveFile so a
+    // failure or a cancellation leaves no partial output behind. `progress`
+    // is called with the bytes written so far and returns false to cancel
+    // (then `error` is "cancelled"). Replaces every `gzip -dc` shell-out:
+    // there is no gzip on Windows, and a process that never started reports
+    // exit code 0, which once handed samtools an empty FASTA.
+    static bool decompressFile(const QString &gz, const QString &dest,
+                               const std::function<bool(qint64)> &progress, QString *error);
 
 protected:
     qint64 readData(char *data, qint64 maxSize) override;

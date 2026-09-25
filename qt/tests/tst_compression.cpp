@@ -25,6 +25,35 @@ class CompressionTest : public QObject {
     }
 
 private slots:
+    void decompressFileWritesWholeOutput()
+    {
+        QTemporaryDir dir;
+        const QByteArray text = QByteArray(">22 dna:chromosome\n") + QByteArray(100000, 'A') + "\n";
+        const QString gz = dir.filePath("chr.fa.gz");
+        {
+            QProcess gzip;   // the reference encoder; the test only decodes
+            gzip.setStandardOutputFile(gz);
+            gzip.start("gzip", {"-c"});
+            if (!gzip.waitForStarted())
+                QSKIP("gzip not installed");
+            gzip.write(text);
+            gzip.closeWriteChannel();
+            QVERIFY(gzip.waitForFinished());
+        }
+        const QString fa = dir.filePath("chr.fa");
+        QString err;
+        qint64 last = 0;
+        QVERIFY2(GzipStream::decompressFile(gz, fa, [&](qint64 w) { last = w; return true; }, &err), qPrintable(err));
+        QFile f(fa);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QCOMPARE(f.readAll(), text);
+        QCOMPARE(last, qint64(text.size()));
+        // cancelling leaves nothing behind
+        QVERIFY(!GzipStream::decompressFile(gz, dir.filePath("none.fa"), [](qint64) { return false; }, &err));
+        QCOMPARE(err, QString("cancelled"));
+        QVERIFY(!QFile::exists(dir.filePath("none.fa")));
+    }
+
     void gzipSingleMember()
     {
         GzipStream in(write("one.gz", kGzOne, sizeof kGzOne));

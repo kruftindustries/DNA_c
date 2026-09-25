@@ -98,37 +98,15 @@ bool setup(const QString &root, const Reporter &reporter, QString *error)
         // 2. Decompress in-process to a plain FASTA (~3 GB), which is what
         //    samtools faidx and bcftools mpileup read.
         reporter.stage(QStringLiteral("Decompressing the reference (~3 GB)"), 40);
-        GzipStream in(gz);
-        if (!in.open(QIODevice::ReadOnly)) {
-            if (error) *error = in.errorText();
-            return false;
-        }
-        QSaveFile out(s.fasta);
-        if (!out.open(QIODevice::WriteOnly)) {
-            if (error) *error = QStringLiteral("cannot write %1: %2").arg(s.fasta, out.errorString());
-            return false;
-        }
         const qint64 total = QFileInfo(gz).size();
-        qint64 written = 0;
-        QByteArray chunk;
-        while (!(chunk = in.read(4 << 20)).isEmpty()) {
-            if (reporter.cancelled()) {
-                if (error) *error = "cancelled";
-                return false;   // QSaveFile discards the partial output
-            }
-            out.write(chunk);
-            written += chunk.size();
+        const auto progress = [&](qint64 written) {
             // The plain FASTA is ~3.4x the gzip; report against that.
             reporter.stage(QStringLiteral("Decompressing the reference (%1)")
                                .arg(QLocale().formattedDataSize(written)),
                            40 + int(qMin<qint64>(25, written * 25 / qMax<qint64>(1, total * 34 / 10))));
-        }
-        if (!in.errorText().isEmpty()) {
-            if (error) *error = in.errorText();
-            return false;
-        }
-        if (!out.commit()) {
-            if (error) *error = QStringLiteral("cannot finish %1: %2").arg(s.fasta, out.errorString());
+            return !reporter.cancelled();
+        };
+        if (!GzipStream::decompressFile(gz, s.fasta, progress, error)) {
             return false;
         }
         QFile::remove(gz);

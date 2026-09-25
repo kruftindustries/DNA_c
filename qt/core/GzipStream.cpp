@@ -1,10 +1,49 @@
 #include "GzipStream.h"
 
+#include <QSaveFile>
+
 GzipStream::GzipStream(const QString &path, QObject *parent) : QIODevice(parent), m_file(path) {}
 
 GzipStream::~GzipStream()
 {
     close();
+}
+
+bool GzipStream::decompressFile(const QString &gz, const QString &dest,
+                                const std::function<bool(qint64)> &progress, QString *error)
+{
+    GzipStream in(gz);
+    if (!in.open(QIODevice::ReadOnly)) {
+        if (error) *error = in.errorText();
+        return false;
+    }
+    QSaveFile out(dest);
+    if (!out.open(QIODevice::WriteOnly)) {
+        if (error) *error = QStringLiteral("cannot write %1: %2").arg(dest, out.errorString());
+        return false;
+    }
+    qint64 written = 0;
+    QByteArray chunk;
+    while (!(chunk = in.read(4 << 20)).isEmpty()) {
+        if (out.write(chunk) != chunk.size()) {
+            if (error) *error = QStringLiteral("cannot write %1: %2").arg(dest, out.errorString());
+            return false;
+        }
+        written += chunk.size();
+        if (progress && !progress(written)) {
+            if (error) *error = QStringLiteral("cancelled");
+            return false;   // QSaveFile discards the partial output
+        }
+    }
+    if (!in.errorText().isEmpty()) {
+        if (error) *error = in.errorText();
+        return false;
+    }
+    if (!out.commit()) {
+        if (error) *error = QStringLiteral("cannot finish %1: %2").arg(dest, out.errorString());
+        return false;
+    }
+    return true;
 }
 
 bool GzipStream::open(OpenMode mode)
