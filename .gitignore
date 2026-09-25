@@ -1,31 +1,63 @@
 # Reference genome (3GB+)
 reference/
 
-# WGS pipeline working directory
+# WGS pipeline working directories
 wgs_work/
+wgs_work_validate/
 
-# Personal genome data and downloaded databases
+# Personal genome data and downloaded databases. data/ is ignored as a
+# whole; data/rsid_positions_grch37.json is the one tracked file in it
+# (git add -f), being small, regenerable and needed by the tests.
 data/
 data_versions.json
 *.fastq
 *.fastq.gz
 *.bam
 *.bam.bai
+*.cram
+*.crai
 *.vcf
 *.vcf.gz
+*.bcf
+
+# Genomic reference and index files wherever a tool drops them. bcftools and
+# samtools cache remote .tbi/.csi/.fai/.gzi indexes in the working directory,
+# which once put 25 index files in the repository root.
+*.tbi
+*.csi
+*.fai
+*.gzi
+*.mmi
+*.fa
+*.fa.gz
+*.fa.bgz
+*.fasta
+*.fasta.gz
+*.chain.gz
+*.gff3.gz
+*.gtf.gz
 
 # Generated reports (root-level only)
 /reports/
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.pytest_cache/
 
 # OS
 .DS_Store
 .tmp/
 
-# Nix
-result
+# Build output: the top-level qmake build (build/) and the executables it
+# puts at the root; c/Makefile's own output.
+/build/
+/genetic-health
+/genetic-health-qt
+/gh-data
+*.exe
+c/build/
+c/bin/
+
+# Qt front end build output
+qt/build/
+*.pro.user
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+*.o
