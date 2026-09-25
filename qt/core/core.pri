@@ -48,5 +48,5 @@ SOURCES += \
 
 # miniz (third_party/miniz, MIT) is plain C compiled with the C compiler;
 # the project's C++ warning flags do not apply to it.
-DEFINES += MINIZ_NO_DEFLATE_APIS MINIZ_NO_ARCHIVE_WRITING_APIS
+DEFINES += MINIZ_NO_DEFLATE_APIS   # miniz.h derives MINIZ_NO_ARCHIVE_WRITING_APIS from it
 *-g++*|*-clang*: QMAKE_CFLAGS += -w
