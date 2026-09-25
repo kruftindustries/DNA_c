@@ -62,12 +62,15 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          Set-Location packaging/tools/windows
-          .\samtools.exe --version | Select-Object -First 1
-          .\bcftools.exe --version | Select-Object -First 1
-          .\minimap2.exe --version
-          .\samtools.exe faidx https://ftp.ebi.ac.uk/pub/ensemblorganisms/GCA/000/001/405/14/ensembl/2013_09/genome/unmasked.fa.bgz 19:45411941-45411941
-          .\bcftools.exe view -H -r 22:16050075 https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz | ForEach-Object { $_.Substring(0, 60) }
+          $t = Join-Path $PWD packaging/tools/windows
+          # In a scratch directory: htslib caches remote .tbi/.fai/.gzi
+          # indexes in the working directory, and they must not ship.
+          Set-Location $env:RUNNER_TEMP
+          & $t\samtools.exe --version | Select-Object -First 1
+          & $t\bcftools.exe --version | Select-Object -First 1
+          & $t\minimap2.exe --version
+          & $t\samtools.exe faidx https://ftp.ebi.ac.uk/pub/ensemblorganisms/GCA/000/001/405/14/ensembl/2013_09/genome/unmasked.fa.bgz 19:45411941-45411941
+          & $t\bcftools.exe view -H -r 22:16050075 https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz | ForEach-Object { $_.Substring(0, 60) }
       - uses: actions/upload-artifact@v7
         with:
           name: windows-tools
@@ -131,7 +134,12 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: artifacts
+      # Only the packages: the windows-tools artifact is an input to the
+      # Windows zip, not a release asset.
       - uses: softprops/action-gh-release@v3
         with:
-          files: artifacts/**/*
+          files: |
+            artifacts/linux/*
+            artifacts/windows/*
+            artifacts/macos/*
           generate_release_notes: true
