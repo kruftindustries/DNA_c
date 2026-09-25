@@ -44,7 +44,7 @@ jobs:
         with:
           version: '5.15.2'
           arch: win64_mingw81
-          tools: tools_mingw,qt.tools.win64_mingw810 tools_openssl_x64
+          tools: tools_mingw,qt.tools.win64_mingw810 tools_openssl_x64,qt.tools.openssl.win_x64
           cache: true
       - name: Put the MinGW toolchain on PATH
         shell: pwsh
