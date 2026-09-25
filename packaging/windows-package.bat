@@ -20,17 +20,31 @@ copy /y genetic-health-qt.exe "%OUT%\" >nul
 copy /y gh-data.exe "%OUT%\" >nul
 copy /y genetic-health.exe "%OUT%\" >nul
 copy /y README.md "%OUT%\" >nul
-rem The Qt DLLs, platform plugins and the MinGW runtime, for both Qt executables.
-rem windeployqt locates the plugins through `qmake -query`; point it at the
-rem kit's own qmake explicitly (QT_ROOT_DIR is set by the Qt online installer
-rem prompt and by install-qt-action) so a stray qmake on PATH cannot mislead it.
-set QMAKE_OPT=
-if defined QT_ROOT_DIR set QMAKE_OPT=--qmake "%QT_ROOT_DIR%\bin\qmake.exe"
-where qmake
-qmake -query QT_INSTALL_PLUGINS
-if defined QT_ROOT_DIR dir "%QT_ROOT_DIR%\plugins\platforms"
-windeployqt --verbose 2 %QMAKE_OPT% --release --compiler-runtime --no-translations --no-opengl-sw "%OUT%\genetic-health-qt.exe" || exit /b 1
-windeployqt %QMAKE_OPT% --release --compiler-runtime --no-translations "%OUT%\gh-data.exe" || exit /b 1
+rem The Qt DLLs and the MinGW runtime for both Qt executables. Plugins are
+rem copied by hand: windeployqt's release/debug detection rejects the MinGW
+rem kit's platform plugin ("Unable to find the platform plugin"), and the app
+rem needs exactly two of them.
+windeployqt --release --compiler-runtime --no-translations --no-opengl-sw --no-plugins "%OUT%\genetic-health-qt.exe" || exit /b 1
+windeployqt --release --compiler-runtime --no-translations --no-plugins "%OUT%\gh-data.exe" || exit /b 1
+for /f "delims=" %%p in ('qmake -query QT_INSTALL_PLUGINS') do set QT_PLUGINS=%%p
+mkdir "%OUT%\platforms" "%OUT%\styles" 2>nul
+copy /y "%QT_PLUGINS%\platforms\qwindows.dll" "%OUT%\platforms\" >nul || exit /b 1
+copy /y "%QT_PLUGINS%\styles\qwindowsvistastyle.dll" "%OUT%\styles\" >nul
+
+rem HTTPS (ClinVar, ClinPGx, Ensembl, 1000 Genomes) needs OpenSSL 1.1, which
+rem Qt 5 loads at run time and does not ship. The Qt online installer's
+rem "OpenSSL 1.1.1 Toolkit" (and install-qt-action's tools_openssl_x64) puts
+rem it under Qt\Tools\OpenSSL\Win_x64\bin.
+for /f "delims=" %%p in ('qmake -query QT_INSTALL_PREFIX') do set QT_PREFIX=%%p
+set OPENSSL_BIN=%QT_PREFIX%\..\..\Tools\OpenSSL\Win_x64\bin
+if defined IQTA_TOOLS set OPENSSL_BIN=%IQTA_TOOLS%\OpenSSL\Win_x64\bin
+if exist "%OPENSSL_BIN%\libssl-1_1-x64.dll" (
+    copy /y "%OPENSSL_BIN%\libssl-1_1-x64.dll" "%OUT%\" >nul
+    copy /y "%OPENSSL_BIN%\libcrypto-1_1-x64.dll" "%OUT%\" >nul
+) else (
+    echo WARNING: OpenSSL 1.1 DLLs not found at %OPENSSL_BIN%; HTTPS downloads will not work without them.
+)
+dir "%OUT%"
 if exist "%OUT%.zip" del "%OUT%.zip"
 powershell -NoProfile -Command "Compress-Archive -Path '%OUT%\*' -DestinationPath '%OUT%.zip'" || exit /b 1
 dir dist
