@@ -16,7 +16,7 @@ jobs:
   linux:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Qt 5 and the AppImage tooling prerequisites
         run: |
           sudo apt-get update
@@ -30,7 +30,7 @@ jobs:
         run: make qt-test
       - name: Package (AppImage + portable tar.gz)
         run: packaging/linux-appimage.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: linux
           path: dist/*
@@ -45,7 +45,7 @@ jobs:
       run:
         shell: msys2 {0}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -68,7 +68,7 @@ jobs:
           .\minimap2.exe --version
           .\samtools.exe faidx https://ftp.ebi.ac.uk/pub/ensemblorganisms/GCA/000/001/405/14/ensembl/2013_09/genome/unmasked.fa.bgz 19:45411941-45411941
           .\bcftools.exe view -H -r 22:16050075 https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz | ForEach-Object { $_.Substring(0, 60) }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows-tools
           path: packaging/tools/windows/**
@@ -77,8 +77,8 @@ jobs:
     runs-on: windows-2022
     needs: windows-tools
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: windows-tools
           path: packaging/tools/windows
@@ -98,7 +98,7 @@ jobs:
       - name: Build and package
         shell: cmd
         run: packaging\windows-package.bat
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: windows
           path: dist/*.zip
@@ -108,7 +108,7 @@ jobs:
     # script builds x86_64 (Rosetta at run time on Apple silicon).
     runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Qt 5.15
         uses: jurplel/install-qt-action@v4
         with:
@@ -116,7 +116,7 @@ jobs:
           cache: true
       - name: Build and package
         run: packaging/macos-dmg.sh
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: macos
           path: dist/*.dmg
@@ -128,10 +128,10 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: artifacts
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: artifacts/**/*
           generate_release_notes: true
