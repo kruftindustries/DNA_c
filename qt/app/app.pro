@@ -3,6 +3,10 @@ TEMPLATE = app
 # The desktop's colour-scheme preference comes over D-Bus (XDG portal) on Linux.
 unix:!macx: qtHaveModule(dbus): QT += dbus
 TARGET = genetic-health-qt
+VERSION = 0.2.0
+win32: RC_ICONS = ../../packaging/genetic-health.ico
+macx: ICON = ../../packaging/genetic-health.icns
+macx: QMAKE_TARGET_BUNDLE_PREFIX = org.genetic-health
 DESTDIR = $$PWD/../..
 
 HEADERS += \

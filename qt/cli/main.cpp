@@ -15,6 +15,7 @@
 #include "ClinVarUpdater.h"
 #include "DataVersions.h"
 #include "EnsemblLookup.h"
+#include "Locations.h"
 #include "PharmgkbUpdater.h"
 #include "Reporter.h"
 #include "TargetRegions.h"
@@ -50,23 +51,16 @@ int usage()
         "                    reference assembly's own bases as a null-test sample\n"
         "  gh-data tools                           where the WGS tools were found\n"
         "\n"
-        "The repository root is found from the executable's location; --root DIR overrides it.\n",
+        "The working root is the checkout around the executable, else the per-user application\n"
+        "data directory (~/.local/share/genetic-health, %LOCALAPPDATA%\\genetic-health, ~/Library/\n"
+        "Application Support/genetic-health); --root DIR overrides it.\n",
         stderr);
     return 2;
 }
 
 QString findRoot()
 {
-    QString dir = QCoreApplication::applicationDirPath();
-    for (int i = 0; i < 8; ++i) {
-        if (QFileInfo(dir + "/c/src/main.c").exists())
-            return QDir(dir).absolutePath();
-        QDir d(dir);
-        if (!d.cdUp())
-            break;
-        dir = d.absolutePath();
-    }
-    return QDir::currentPath();
+    return Locations::defaultRoot();
 }
 
 QString takeOption(QStringList &args, const QString &name, const QString &fallback = QString())

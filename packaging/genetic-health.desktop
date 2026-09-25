@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Genetic Health
+Comment=Health report from a 23andMe/AncestryDNA export or sequencing reads
+Exec=genetic-health-qt
+Icon=genetic-health
+Categories=Science;Biology;
+Terminal=false

@@ -7,8 +7,9 @@
 
 namespace RepoPaths {
 
-// The checkout root: the nearest ancestor of the executable (or of the
-// working directory) containing c/src/main.c. Empty if none.
+// The working root: the checkout around the executable (or the working
+// directory), else the per-user application data directory -- see
+// core/Locations.h. Overridable in Settings.
 QString root();
 
 QString dataDir();          // <root>/data unless overridden

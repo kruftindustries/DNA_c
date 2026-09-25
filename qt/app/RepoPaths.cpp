@@ -1,4 +1,5 @@
 #include "RepoPaths.h"
+#include "Locations.h"
 #include "ToolLocator.h"
 
 #include <QCoreApplication>
@@ -8,19 +9,6 @@
 #include <QStandardPaths>
 
 namespace {
-
-QString findRootFrom(QString dir)
-{
-    for (int depth = 0; depth < 8; ++depth) {
-        if (QFileInfo(dir + "/c/src/main.c").exists())
-            return QDir(dir).absolutePath();
-        QDir d(dir);
-        if (!d.cdUp())
-            break;
-        dir = d.absolutePath();
-    }
-    return QString();
-}
 
 QString setting(const char *key)
 {
@@ -36,10 +24,7 @@ QString root()
     const QString override = setting("paths/root");
     if (!override.isEmpty())
         return override;
-    QString found = findRootFrom(QCoreApplication::applicationDirPath());
-    if (found.isEmpty())
-        found = findRootFrom(QDir::currentPath());
-    return found;
+    return Locations::defaultRoot();
 }
 
 QString dataDir()

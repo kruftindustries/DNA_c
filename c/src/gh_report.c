@@ -379,7 +379,8 @@ void gh_report_render(gh_strbuf *sb, gh_arena *arena, const gh_analysis *a,
         time_t now = time(NULL);
         struct tm tm_buf;
 #ifdef _WIN32
-        localtime_s(&tm_buf, &now);
+        /* The Windows C runtime's localtime keeps a per-thread buffer. */
+        tm_buf = *localtime(&now);
 #else
         localtime_r(&now, &tm_buf);
 #endif

@@ -40,6 +40,29 @@ All three are built into the repository root by one build. The trees:
 tests), `data/`, `reference/`, `reports/` (all gitignored; filled in by the
 app).
 
+## Downloads
+
+Release builds for all three platforms are attached to each
+[GitHub release](https://github.com/kruftindustries/DNA_c/releases), built by
+the workflow in `.github/workflows/release.yml` from a version tag:
+
+| Platform | Package | Run |
+|---|---|---|
+| Linux x86_64 | `Genetic_Health-x86_64.AppImage` | `chmod +x` and run (needs FUSE 2: `sudo apt install libfuse2`, or `--appimage-extract` and run `squashfs-root/usr/bin/genetic-health-qt`). `genetic-health-linux-x86_64.tar.gz` is the same tree as a folder, with `usr/bin/gh-data` and the engine beside the app. |
+| Windows x64 | `genetic-health-windows-x64.zip` | Unzip anywhere; run `genetic-health-qt.exe`. `gh-data.exe` and `genetic-health.exe` are in the same folder. The build is unsigned, so SmartScreen asks once (*More info → Run anyway*). |
+| macOS x86_64 | `genetic-health-macos-x86_64.dmg` | Drag *Genetic Health* to Applications. Unsigned: first launch is right-click → *Open*. `gh-data` and the engine are inside the bundle at `Genetic Health.app/Contents/MacOS/`. Runs under Rosetta on Apple silicon. |
+
+A packaged build keeps its data — annotation downloads, the reference genome,
+reports — under the per-user application data directory
+(`~/.local/share/genetic-health`, `%LOCALAPPDATA%\genetic-health`,
+`~/Library/Application Support/genetic-health`); a build inside a source
+checkout uses the checkout's `data/`, `reference/` and `reports/`. Settings
+in the app can point either elsewhere.
+
+The packages are produced by the scripts in `packaging/`
+(`linux-appimage.sh`, `windows-package.bat`, `macos-dmg.sh`), which can be
+run locally after a build; the workflow runs exactly those.
+
 ## Building
 
 ### Windows

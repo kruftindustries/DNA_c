@@ -1,0 +1,89 @@
+# Builds the engine, the desktop app and gh-data on Linux, Windows and macOS,
+# runs the test suites on Linux, and on a version tag (v0.2.0, ...) publishes
+# the packages as a GitHub release: an AppImage and portable tar.gz, a
+# Windows zip, a macOS dmg. Each job runs the same script a developer would
+# run locally (packaging/).
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt 5 and the AppImage tooling prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential qtbase5-dev qt5-qmake qtbase5-dev-tools \
+              libgl1-mesa-dev libfuse2 file
+      - name: Build (top-level qmake project)
+        run: make build
+      - name: Engine unit tests
+        run: make -C c test
+      - name: Qt unit tests
+        run: make qt-test
+      - name: Package (AppImage + portable tar.gz)
+        run: packaging/linux-appimage.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: dist/*
+
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt 5.15 (MinGW 64-bit kit)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          arch: win64_mingw81
+          tools: tools_mingw,qt.tools.win64_mingw810
+          cache: true
+      - name: Put the MinGW toolchain on PATH
+        shell: pwsh
+        run: echo "$env:IQTA_TOOLS\mingw810_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Build and package
+        shell: cmd
+        run: packaging\windows-package.bat
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: dist/*.zip
+
+  macos:
+    runs-on: macos-13
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt 5.15
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '5.15.2'
+          cache: true
+      - name: Build and package
+        run: packaging/macos-dmg.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: dist/*.dmg
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows, macos]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true

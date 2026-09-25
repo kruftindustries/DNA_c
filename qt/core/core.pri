@@ -21,7 +21,8 @@ HEADERS += \
     $$PWD/ChainLift.h \
     $$PWD/RemoteFasta.h \
     $$PWD/ZipArchive.h \
-    $$PWD/ReferenceGenome.h
+    $$PWD/ReferenceGenome.h \
+    $$PWD/Locations.h
 
 SOURCES += \
     $$PWD/Reporter.cpp \
@@ -42,6 +43,7 @@ SOURCES += \
     $$PWD/RemoteFasta.cpp \
     $$PWD/ZipArchive.cpp \
     $$PWD/ReferenceGenome.cpp \
+    $$PWD/Locations.cpp \
     $$PWD/third_party/miniz/miniz.c
 
 # miniz (third_party/miniz, MIT) is plain C compiled with the C compiler;
