@@ -10,10 +10,16 @@
 # `xattr -dr com.apple.quarantine "Genetic Health.app"`).
 set -euo pipefail
 cd "$(dirname "$0")/.."
-ARCH=$(uname -m)
 DIST=dist
 mkdir -p build "$DIST"
-( cd build && qmake ../genetic-health.pro && make -j"$(sysctl -n hw.ncpu)" )
+
+# Build for the architectures the Qt kit supports. Qt 5.15's macOS build is
+# x86_64 only; on an Apple-silicon host qmake would default to arm64 and the
+# link would fail, so pass the kit's architectures explicitly.
+QTCORE="$(qmake -query QT_INSTALL_LIBS)/QtCore.framework/QtCore"
+QT_ARCHS=$(lipo -archs "$QTCORE" 2>/dev/null || echo "$(uname -m)")
+case "$QT_ARCHS" in *arm64*\ *x86_64*|*x86_64*\ *arm64*) ARCH=universal ;; *arm64*) ARCH=arm64 ;; *) ARCH=x86_64 ;; esac
+( cd build && qmake ../genetic-health.pro "QMAKE_APPLE_DEVICE_ARCHS=$QT_ARCHS" && make -j"$(sysctl -n hw.ncpu)" )
 
 APP=genetic-health-qt.app
 [ -d "$APP" ] || { echo "expected $APP in the repository root"; exit 1; }

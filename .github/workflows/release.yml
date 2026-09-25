@@ -58,7 +58,9 @@ jobs:
           path: dist/*.zip
 
   macos:
-    runs-on: macos-13
+    # Apple-silicon runner; Qt 5.15.2's macOS build is x86_64-only, so the
+    # script builds x86_64 (Rosetta at run time on Apple silicon).
+    runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
       - name: Install Qt 5.15
