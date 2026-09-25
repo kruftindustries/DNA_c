@@ -46,19 +46,25 @@ echo "== samtools $HTS_VERSION"
 fetch "https://github.com/samtools/samtools/releases/download/$HTS_VERSION/samtools-$HTS_VERSION.tar.bz2"
 ( cd "$work/samtools-$HTS_VERSION"
   ./configure --with-htslib="$work/htslib-$HTS_VERSION" --without-curses --disable-ref-cache
-  make -j"$jobs" samtools.exe )
+  make -j"$jobs" samtools
+  [ -f samtools.exe ] || mv samtools samtools.exe )
 
 echo "== bcftools $HTS_VERSION"
 fetch "https://github.com/samtools/bcftools/releases/download/$HTS_VERSION/bcftools-$HTS_VERSION.tar.bz2"
 ( cd "$work/bcftools-$HTS_VERSION"
   ./configure --with-htslib="$work/htslib-$HTS_VERSION" --disable-bcftools-plugins
-  make -j"$jobs" bcftools.exe )
+  make -j"$jobs" bcftools
+  [ -f bcftools.exe ] || mv bcftools bcftools.exe )
 
 echo "== minimap2 $MINIMAP2_VERSION"
 fetch "https://github.com/lh3/minimap2/releases/download/v$MINIMAP2_VERSION/minimap2-$MINIMAP2_VERSION.tar.bz2"
 ( cd "$work/minimap2-$MINIMAP2_VERSION"
-  make -j"$jobs" minimap2.exe )
+  make -j"$jobs" minimap2
+  [ -f minimap2.exe ] || mv minimap2 minimap2.exe )
 
+# The makefiles name their targets without .exe; MinGW's gcc adds the
+# suffix to the file it writes, hence the target names above and the
+# renames in case a toolchain does not.
 echo "== collecting into $out"
 rm -rf "$out"
 mkdir -p "$out/licenses"
