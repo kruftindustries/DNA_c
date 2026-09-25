@@ -75,7 +75,7 @@ GenomeSniff sniffGenome(const QString &path, int maxLines)
     }
 
     QTextStream in(&f);
-    int rows23 = 0, rowsAnc = 0, vcfHeader = 0;
+    int rows23 = 0, rowsAnc = 0, vcfHeader = 0, comments = 0;
     bool firstNonEmpty = true;
     for (int i = 0; i < maxLines && !in.atEnd(); ++i) {
         const QString line = in.readLine();
@@ -102,6 +102,7 @@ GenomeSniff sniffGenome(const QString &path, int maxLines)
             }
         }
         if (line.startsWith('#')) {
+            comments++;
             if (line.startsWith("#CHROM"))
                 vcfHeader++;
             continue;
@@ -129,6 +130,12 @@ GenomeSniff sniffGenome(const QString &path, int maxLines)
         out.description = QStringLiteral("23andMe layout: %1 genotypes, %2 no-calls "
                                          "in the first %3 lines")
                               .arg(out.dataRows).arg(out.noCalls).arg(out.sampledLines);
+    } else if (out.sampledLines == 0) {
+        out.description = QStringLiteral("empty file");
+    } else if (comments == out.sampledLines) {
+        out.description = QStringLiteral("no genotype rows: the file holds only %1 comment line(s) "
+                                         "(a test genome build that fetched nothing?)")
+                              .arg(comments);
     } else {
         out.description = QStringLiteral("no genotype rows found in the first %1 lines")
                               .arg(out.sampledLines);

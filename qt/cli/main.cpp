@@ -244,7 +244,7 @@ int main(int argc, char **argv)
         }
         const QStringList absent = ToolLocator::missing(ToolLocator::requiredWgsTools());
         if (!absent.isEmpty())
-            std::printf("\nRequirements not installed (%s). Install them with:\n  %s\n",
+            std::printf("\nNot installed: %s.\n%s\n",
                         qPrintable(absent.join(", ")), qPrintable(ToolLocator::installHint()));
         return absent.isEmpty() ? 0 : 1;
     }

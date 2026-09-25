@@ -1,7 +1,9 @@
 #include "EnsemblLookup.h"
 
+#include <QDir>
 #include <QEventLoop>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QNetworkAccessManager>
@@ -17,8 +19,24 @@ namespace EnsemblLookup {
 const char *const kEndpoint = "https://grch37.rest.ensembl.org/variation/homo_sapiens";
 const char *const kEndpointGRCh38 = "https://rest.ensembl.org/variation/homo_sapiens";
 
+bool seedLookup(const QString &path)
+{
+    if (QFile::exists(path))
+        return true;
+    QFile seed(QStringLiteral(":/seed/rsid_positions_grch37.json"));
+    if (!seed.exists())
+        return false;
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    if (!QFile::copy(seed.fileName(), path))
+        return false;
+    // A copy of a resource inherits its read-only permissions.
+    QFile::setPermissions(path, QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::ReadOther);
+    return true;
+}
+
 QJsonObject loadLookup(const QString &path)
 {
+    seedLookup(path);
     QFile f(path);
     if (!f.open(QIODevice::ReadOnly))
         return {};
@@ -146,10 +164,12 @@ bool getVariation(QNetworkAccessManager &nam, const char *endpoint, const QStrin
 }
 
 bool update(const QString &lookupPath, const QStringList &rsids, const Reporter &reporter,
-            QStringList *unresolved)
+            QStringList *unresolved, QString *error)
 {
     reporter.log(QStringLiteral("Building the rsID position lookup"));
     QJsonObject lookup = loadLookup(lookupPath);
+    int unanswered = 0;   // ids in batches Ensembl never answered
+    QString lastError;
     QStringList missing;
     for (const QString &r : rsids)
         if (!lookup.contains(r))
@@ -177,6 +197,8 @@ bool update(const QString &lookupPath, const QStringList &rsids, const Reporter 
             if (!ok) {
                 reporter.log(QStringLiteral("  Warning: API batch %1 failed: %2")
                                  .arg(i / batchSize + 1).arg(err));
+                unanswered += batch.size();
+                lastError = err;
                 continue;
             }
             QSet<QString> requested(batch.begin(), batch.end());
@@ -195,9 +217,18 @@ bool update(const QString &lookupPath, const QStringList &rsids, const Reporter 
     if (unresolved)
         *unresolved = left;
 
-    if (!saveLookup(lookupPath, lookup))
+    if (!saveLookup(lookupPath, lookup)) {
+        if (error)
+            *error = QStringLiteral("cannot write %1").arg(lookupPath);
         return false;
+    }
     reporter.log(QStringLiteral("  Saved %1 rsID positions (%2 requested)").arg(lookup.size()).arg(rsids.size()));
+    if (unanswered) {
+        if (error)
+            *error = QStringLiteral("the Ensembl GRCh37 REST API could not be reached for %1 rsID(s) (%2)")
+                         .arg(unanswered).arg(lastError);
+        return false;
+    }
     return true;
 }
 

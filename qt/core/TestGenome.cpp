@@ -133,6 +133,33 @@ bool listRsids(const Options &options, QStringList *rsids, QString *error)
     return true;
 }
 
+// The rsID -> GRCh37 position lookup for `rsids`, refreshed from Ensembl
+// for ids it lacks. A packaged build starts from the copy compiled in, so
+// the Ensembl host being unreachable only matters for ids added since; it
+// is fatal only when nothing at all is positioned, since a sample built
+// from no positions would be an empty file.
+bool positionLookup(const QString &lookupPath, const QStringList &rsids, const Reporter &reporter,
+                    QJsonObject *lookup, QString *error)
+{
+    QString lookupError;
+    const bool updated = EnsemblLookup::update(lookupPath, rsids, reporter, nullptr, &lookupError);
+    *lookup = EnsemblLookup::loadLookup(lookupPath);
+    int positioned = 0;
+    for (const QString &r : rsids)
+        if (lookup->contains(r))
+            positioned++;
+    if (positioned == 0) {
+        if (error)
+            *error = QStringLiteral("no GRCh37 position is known for any of the %1 rsIDs: %2")
+                         .arg(rsids.size()).arg(updated ? QStringLiteral("the lookup is empty") : lookupError);
+        return false;
+    }
+    if (!updated)
+        reporter.log(QStringLiteral("  Warning: %1; continuing with the %2 positions on file")
+                         .arg(lookupError).arg(positioned));
+    return true;
+}
+
 // Reference bases on `options.sample` for the ids that have a GRCh37
 // position, from the assembly sequence itself: `samtools faidx` on Ensembl's
 // indexed FASTA, with GRCh37 positions lifted to GRCh38 through Ensembl's
@@ -388,8 +415,9 @@ bool buildReference(const Options &options, const Reporter &reporter, Stats *sta
     if (!listRsids(options, &rsids, error))
         return false;
     const QString lookupPath = options.dataDir + "/rsid_positions_grch37.json";
-    EnsemblLookup::update(lookupPath, rsids, reporter, nullptr);
-    const QJsonObject lookup = EnsemblLookup::loadLookup(lookupPath);
+    QJsonObject lookup;
+    if (!positionLookup(lookupPath, rsids, reporter, &lookup, error))
+        return false;
 
     QMap<QString, QList<Site>> byChrom;
     QStringList placed;
@@ -425,6 +453,12 @@ bool buildReference(const Options &options, const Reporter &reporter, Stats *sta
                          .arg(ToolLocator::installHint()));
         if (!referenceFromRest(options, lookup, placed, nam, reporter, &refBase, error))
             return false;
+    }
+    if (refBase.isEmpty()) {
+        if (error)
+            *error = QStringLiteral("no reference base could be fetched for any of the %1 positions; "
+                                    "nothing written (is the network reachable?)").arg(st.positions);
+        return false;
     }
 
     QFile out(output);
@@ -539,7 +573,7 @@ bool build(const Options &options, const Reporter &reporter, Stats *stats, QStri
     const QString bcftools = ToolLocator::find("bcftools");
     if (bcftools.isEmpty()) {
         if (error)
-            *error = QStringLiteral("requirements not installed (bcftools); run: %1").arg(ToolLocator::installHint());
+            *error = QStringLiteral("bcftools is not installed. %1").arg(ToolLocator::installHint());
         return false;
     }
     const QString output = options.output.isEmpty()
@@ -551,8 +585,9 @@ bool build(const Options &options, const Reporter &reporter, Stats *stats, QStri
     if (!listRsids(options, &rsids, error))
         return false;
     const QString lookupPath = options.dataDir + "/rsid_positions_grch37.json";
-    EnsemblLookup::update(lookupPath, rsids, reporter, nullptr);
-    const QJsonObject lookup = EnsemblLookup::loadLookup(lookupPath);
+    QJsonObject lookup;
+    if (!positionLookup(lookupPath, rsids, reporter, &lookup, error))
+        return false;
 
     QMap<QString, QList<Site>> byChrom;   // chrom -> sites
     for (const QString &r : rsids) {

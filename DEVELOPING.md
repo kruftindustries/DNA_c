@@ -120,10 +120,17 @@ rendering.
 |------|--------|----------|
 | `clinvar_alleles.tsv` | `gh-data clinvar` (ClinVar FTP, GRCh37 SNVs) | disease risk, ACMG, carrier screening |
 | `clinical_annotations.tsv`, `clinical_ann_alleles.tsv` | `gh-data pharmgkb` (ClinPGx) | drug–gene interactions |
-| `rsid_positions_grch37.json` | `gh-data lookup-rsids` (Ensembl); tracked | WGS conversion, test genomes |
+| `rsid_positions_grch37.json` | `gh-data lookup-rsids` (Ensembl); tracked, and compiled into the executables (`qt/core/core.qrc`) so a packaged build seeds its data directory with it | WGS conversion, test genomes |
 | `data_versions.json` | written by `gh-data` | release bookkeeping |
 
 Missing annotation files skip their sections; the report is still produced.
+
+External tools (minimap2, samtools, bcftools; fastp optional) are found by
+`ToolLocator`: the `tools/` folder beside the executable first, then PATH,
+then the Homebrew/MacPorts/`~/.local` prefixes a desktop-launched app does
+not have on PATH. The Windows release ships them in `tools\`, built by
+`packaging/windows-tools.sh` in MSYS2 MinGW64 (the `windows-tools` CI job);
+Linux and macOS builds tell the user the package-manager command.
 
 ## Interpretation
 

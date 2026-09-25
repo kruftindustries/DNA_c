@@ -9,6 +9,24 @@ class EnsemblTest : public QObject {
     QTemporaryDir dir;
 
 private slots:
+    // A data directory without the lookup starts from the copy compiled
+    // in: that is what a packaged build has, and it is what lets the test
+    // genomes and reference samples be built when the Ensembl GRCh37 host
+    // is down (which used to leave an empty sample file behind).
+    void missingLookupSeededFromResource()
+    {
+        const QString path = dir.filePath("fresh/rsid_positions_grch37.json");
+        QVERIFY(!QFile::exists(path));
+        const QJsonObject lookup = EnsemblLookup::loadLookup(path);
+        QVERIFY(QFile::exists(path));
+        QVERIFY(lookup.size() > 500);
+        QCOMPARE(lookup["rs429358"].toObject()["chrom"].toString(), QString("19"));
+        QCOMPARE(lookup["rs429358"].toObject()["pos"].toString(), QString("45411941"));
+        // and the copy is writable, so an update can extend it
+        QVERIFY(QFileInfo(path).isWritable());
+        QVERIFY(EnsemblLookup::saveLookup(path, lookup));
+    }
+
     void mergedRsidStoredUnderRequestedId()
     {
         const QJsonObject results = QJsonDocument::fromJson(R"({

@@ -35,10 +35,53 @@ jobs:
           name: linux
           path: dist/*
 
-  windows:
+  # The sequencing tools the Windows zip ships in tools\: samtools, bcftools
+  # and minimap2 built from their release tarballs in MSYS2 MinGW64, the
+  # environment their own projects test Windows builds in. Linux and macOS
+  # users install them from apt/Homebrew instead (the app says how).
+  windows-tools:
     runs-on: windows-2022
+    defaults:
+      run:
+        shell: msys2 {0}
     steps:
       - uses: actions/checkout@v4
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain mingw-w64-x86_64-zlib mingw-w64-x86_64-bzip2
+            mingw-w64-x86_64-xz mingw-w64-x86_64-libdeflate mingw-w64-x86_64-curl-winssl
+            make autoconf automake tar
+      - name: Build samtools, bcftools, minimap2
+        run: packaging/windows-tools.sh
+      # Outside the MSYS2 shell, as the app will run them: proves the DLL set
+      # is complete and that https:// works through htslib's libcurl.
+      - name: Smoke test from a plain Windows shell
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location packaging/tools/windows
+          .\samtools.exe --version | Select-Object -First 1
+          .\bcftools.exe --version | Select-Object -First 1
+          .\minimap2.exe --version
+          .\samtools.exe faidx https://ftp.ebi.ac.uk/pub/ensemblorganisms/GCA/000/001/405/14/ensembl/2013_09/genome/unmasked.fa.bgz 19:45411941-45411941
+          .\bcftools.exe view -H -r 22:16050075 https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz | ForEach-Object { $_.Substring(0, 60) }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-tools
+          path: packaging/tools/windows/**
+
+  windows:
+    runs-on: windows-2022
+    needs: windows-tools
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-tools
+          path: packaging/tools/windows
       # Qt 6 on Windows carries a native Schannel TLS backend, so HTTPS
       # (ClinVar, Ensembl, 1000 Genomes) needs no OpenSSL DLLs; Qt 5.15 can
       # only load OpenSSL 1.1, which Qt no longer distributes.

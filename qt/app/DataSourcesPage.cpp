@@ -20,6 +20,7 @@
 #include "DataVersions.h"
 #include "EnsemblLookup.h"
 #include "ReferenceGenome.h"
+#include "ToolLocator.h"
 #include "PharmgkbUpdater.h"
 #include "RepoPaths.h"
 
@@ -238,6 +239,21 @@ void DataSourcesPage::refresh()
         }
         addRow("Caches (test genomes, indexes, Ensembl)", present.isEmpty() ? "—" : QLocale().formattedDataSize(bytes),
                "", present.isEmpty() ? "none" : present.join(", "));
+    }
+    {
+        QStringList found, absent;
+        for (const QString &t : ToolLocator::wgsTools()) {
+            const QString p = ToolLocator::find(t);
+            if (p.isEmpty())
+                absent << (t == "fastp" ? QStringLiteral("fastp (optional)") : t);
+            else
+                found << QStringLiteral("%1: %2").arg(t, QDir::toNativeSeparators(p));
+        }
+        const QStringList required = ToolLocator::missing(ToolLocator::requiredWgsTools());
+        addRow("Sequencing tools (FASTQ pipeline, 1000 Genomes sample)",
+               required.isEmpty() ? QStringLiteral("ready") : QStringLiteral("missing: %1").arg(required.join(", ")),
+               "",
+               (found + absent).join("; ") + (required.isEmpty() ? QString() : ". " + ToolLocator::installHint()));
     }
     m_table->resizeColumnsToContents();
     m_reference->setEnabled(!m_job.isRunning() && !ReferenceGenome::status(RepoPaths::root()).ready());

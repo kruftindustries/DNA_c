@@ -201,8 +201,9 @@ void InputPage::buildTestGenome()
     const QString sample = m_testSample->currentData().toString();
     if (!TestGenome::isReferenceSample(sample) && ToolLocator::find("bcftools").isEmpty()) {
         m_testStatus->setText(QStringLiteral(
-            "<span style=\"color:palette(highlight)\"><b>Requirements not installed.</b></span> "
-            "Install them with: <code>%1</code>").arg(ToolLocator::installHint()));
+            "<span style=\"color:palette(highlight)\"><b>bcftools is not installed</b></span> "
+            "(the 1000 Genomes sample needs it; the GRCh37/GRCh38 samples do not). %1")
+            .arg(ToolLocator::installHint().toHtmlEscaped()));
         return;
     }
     TestGenome::Options opt;

@@ -3,6 +3,8 @@
 QT += core network
 INCLUDEPATH += $$PWD
 
+RESOURCES += $$PWD/core.qrc
+
 HEADERS += \
     $$PWD/Reporter.h \
     $$PWD/ToolLocator.h \

@@ -22,6 +22,15 @@ copy /y genetic-health-qt.exe "%OUT%\" >nul
 copy /y gh-data.exe "%OUT%\" >nul
 copy /y genetic-health.exe "%OUT%\" >nul
 copy /y README.md "%OUT%\" >nul
+rem The sequencing tools (samtools, bcftools, minimap2 + their DLLs), built
+rem by packaging\windows-tools.sh in MSYS2; the CI job puts them here. The
+rem app looks in tools\ beside itself before PATH. Without this folder the
+rem zip still works for array exports; the FASTQ pipeline says what is missing.
+if exist packaging\tools\windows\samtools.exe (
+    xcopy /e /i /y /q packaging\tools\windows "%OUT%\tools" >nul || exit /b 1
+) else (
+    echo WARNING: packaging\tools\windows not present; the zip will not include the sequencing tools.
+)
 rem The Qt DLLs and the MinGW runtime for both Qt executables. Plugins are
 rem copied by hand: windeployqt's release/debug detection rejects the MinGW
 rem kit's platform plugin ("Unable to find the platform plugin"), and the app

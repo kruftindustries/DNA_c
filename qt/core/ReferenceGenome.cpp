@@ -75,8 +75,9 @@ bool setup(const QString &root, const Reporter &reporter, QString *error)
     const QString minimap2 = ToolLocator::find("minimap2");
     if (samtools.isEmpty() || minimap2.isEmpty()) {
         if (error)
-            *error = QStringLiteral("requirements not installed (samtools, minimap2); run: %1")
-                         .arg(ToolLocator::installHint());
+            *error = QStringLiteral("%1 not installed. %2")
+                         .arg(ToolLocator::missing({"samtools", "minimap2"}).join(", "),
+                              ToolLocator::installHint());
         return false;
     }
     Status s = status(root);

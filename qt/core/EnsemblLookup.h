@@ -33,7 +33,11 @@ bool postVariationBatch(QNetworkAccessManager &nam, const char *endpoint,
 bool getVariation(QNetworkAccessManager &nam, const char *endpoint, const QString &id,
                   QJsonObject *result, QString *error);
 
+// Loads the lookup. A path that does not exist yet is first seeded from
+// the copy compiled into the executable (data/rsid_positions_grch37.json at
+// build time), which is what a packaged build starts from.
 QJsonObject loadLookup(const QString &path);
+bool seedLookup(const QString &path);   // true if the file exists afterwards
 bool saveLookup(const QString &path, const QJsonObject &lookup);
 
 // Fold one batch response into `lookup`, keyed by the ids that were asked
@@ -42,8 +46,10 @@ int mergeBatch(const QJsonObject &results, const QSet<QString> &requested,
                QJsonObject &lookup);
 
 // Query for whatever in `rsids` is not yet in the cache and save it.
-// `unresolved` receives the ids that still have no position.
+// `unresolved` receives the ids that still have no position. False when
+// Ensembl could not be asked about some of them (with `error` set); the
+// ids that were answered are saved regardless.
 bool update(const QString &lookupPath, const QStringList &rsids,
-            const Reporter &reporter, QStringList *unresolved);
+            const Reporter &reporter, QStringList *unresolved, QString *error = nullptr);
 
 } // namespace EnsemblLookup

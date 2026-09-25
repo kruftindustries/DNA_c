@@ -49,7 +49,7 @@ the workflow in `.github/workflows/release.yml` from a version tag:
 | Platform | Package | Run |
 |---|---|---|
 | Linux x86_64 | `Genetic_Health-x86_64.AppImage` | `chmod +x` and run (needs FUSE 2: `sudo apt install libfuse2`, or `--appimage-extract` and run `squashfs-root/usr/bin/genetic-health-qt`). `genetic-health-linux-x86_64.tar.gz` is the same tree as a folder, with `usr/bin/gh-data` and the engine beside the app. |
-| Windows x64 | `genetic-health-windows-x64.zip` | Unzip anywhere; run `genetic-health-qt.exe`. `gh-data.exe` and `genetic-health.exe` are in the same folder. The build is unsigned, so SmartScreen asks once (*More info → Run anyway*). |
+| Windows x64 | `genetic-health-windows-x64.zip` | Unzip anywhere (the whole zip: the `tools\` folder holds samtools, bcftools and minimap2 for the FASTQ workflow); run `genetic-health-qt.exe`. `gh-data.exe` and `genetic-health.exe` are in the same folder. The build is unsigned, so SmartScreen asks once (*More info → Run anyway*). |
 | macOS x86_64 | `genetic-health-macos-x86_64.dmg` | Drag *Genetic Health* to Applications. Unsigned: first launch is right-click → *Open*. `gh-data` and the engine are inside the bundle at `Genetic Health.app/Contents/MacOS/`. Runs under Rosetta on Apple silicon. |
 
 A packaged build keeps its data — annotation downloads, the reference genome,
@@ -95,9 +95,14 @@ prompt. The MSVC kit is untested; the engine is standard C11 and the Qt code
 is standard Qt, so it should work, but the MinGW kit is the supported path.
 
 Everything in the 23andMe/AncestryDNA workflow — the app, the data downloads,
-the report — is native and needs nothing beyond Qt. The FASTQ workflow needs
-the sequencing tools (below), which do not have Windows builds; use WSL2
-(Ubuntu) and follow the Linux steps there.
+the report — is native and needs nothing beyond Qt. The FASTQ workflow and
+the 1000 Genomes test sample also need samtools, bcftools and minimap2. The
+release zip ships them in `tools\` beside the app (built from their release
+tarballs by `packaging/windows-tools.sh` in an MSYS2 MinGW64 shell, the
+environment those projects test their own Windows builds in); a local build
+finds them in a `tools\` folder next to `genetic-health-qt.exe`, so copy
+that folder from the release zip. fastp has no Windows build; the pipeline
+skips read QC without it.
 
 ### Linux
 
@@ -143,8 +148,10 @@ gives you. No other tools.
 
 No export to hand? *Get a public test genome…* builds 1000 Genomes sample
 NA12878 at the analysed positions (needs `bcftools`), or writes the GRCh37 or
-GRCh38 reference assembly itself as a sample (needs `samtools`) — the latter
-are also checked in under `samples/`.
+GRCh38 reference assembly itself as a sample (with `samtools`, or through the
+Ensembl REST API without it) — the latter are also checked in under
+`samples/`. The rsID → position lookup these start from is built into the
+app; *Update rsID positions* on Data Sources extends it from Ensembl.
 
 Command line equivalent:
 
@@ -155,13 +162,21 @@ Command line equivalent:
 
 ### Sequencing reads (FASTQ)
 
-Prerequisites, on Linux or WSL2: **minimap2**, **samtools**, **bcftools**,
-and optionally **fastp** for read QC (`sudo apt install minimap2 samtools
-bcftools fastp`; the app and `gh-data tools` print this command when
-something is missing), about **17 GB of disk** (the GRCh37 reference and its
-indexes take ~12 GB, the alignment a few more), **16 GB of RAM** (minimap2
-holds the whole-genome index in memory, ~10.5 GB), and time: alignment of a
-30x genome takes hours.
+Prerequisites: **minimap2**, **samtools** and **bcftools**, plus optionally
+**fastp** for read QC.
+
+| Platform | Where they come from |
+|---|---|
+| Windows | Included in the release zip (`tools\` beside the app). Nothing to install. fastp is not available and QC is skipped. |
+| Linux | `sudo apt install minimap2 samtools bcftools fastp` (Debian/Ubuntu; equivalents on other distributions) |
+| macOS | `brew install minimap2 samtools bcftools fastp` |
+
+The app checks for them on the **WGS Pipeline** and **Data Sources** pages
+and shows the command for your platform when one is missing; `gh-data
+tools` prints the same. Beyond the tools: about **17 GB of disk** (the
+GRCh37 reference and its indexes take ~12 GB, the alignment a few more),
+**16 GB of RAM** (minimap2 holds the whole-genome index in memory, ~10.5
+GB), and time: alignment of a 30x genome takes hours.
 
 1. On **Input**, browse to the FASTQ (`.fastq`, `.fq`, or gzipped). The
    button becomes **Run WGS pipeline + analysis**.
@@ -188,8 +203,9 @@ Command line equivalent:
 
 The **Data Sources** page lists everything the app has fetched, with sizes
 and dates, and manages it: ClinVar and ClinPGx (update, validate), the rsID →
-GRCh37 position lookup (update), the reference genome (set up), and the
-caches behind the test genomes (clear). Refresh ClinVar and ClinPGx roughly
+GRCh37 position lookup (update), the reference genome (set up), the caches
+behind the test genomes (clear), and whether the sequencing tools are
+installed. Refresh ClinVar and ClinPGx roughly
 quarterly; the files live in `data/`, the reference in `reference/`.
 
 #### Reference data and toolchains are not included with this software, these works are licensed by their respective owners

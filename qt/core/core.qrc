@@ -1,0 +1,10 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<!-- Data a packaged build starts with: the rsID -> GRCh37 position lookup
+     for every rsID the analysis reads, so the test genomes and the reference
+     samples do not depend on the Ensembl GRCh37 REST host being up. The
+     checkout's data/ copy is the source; EnsemblLookup::loadLookup seeds a
+     data directory from this when the file is missing there. -->
+<qresource prefix="/seed">
+    <file alias="rsid_positions_grch37.json">../../data/rsid_positions_grch37.json</file>
+</qresource>
+</RCC>

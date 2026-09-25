@@ -52,7 +52,7 @@ QStringList WgsPipeline::prerequisites() const
     QStringList problems;
     const QStringList absent = ToolLocator::missing(ToolLocator::requiredWgsTools());
     if (!absent.isEmpty())
-        problems << QStringLiteral("requirements not installed (%1); run: %2")
+        problems << QStringLiteral("%1 not installed. %2")
                         .arg(absent.join(", "), ToolLocator::installHint());
     if (!QFileInfo(m_cfg.refGenome).exists())
         problems << QStringLiteral("reference genome not found: %1 (run: make setup)").arg(m_cfg.refGenome);

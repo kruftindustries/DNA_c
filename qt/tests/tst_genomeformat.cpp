@@ -63,6 +63,15 @@ private slots:
         QCOMPARE(sniffGenome(write("x.txt.gz", magic)).format, GenomeFormat::GzipCompressed);
     }
 
+    void headerOnlyFileNamed()
+    {
+        const GenomeSniff s = sniffGenome(write("empty.txt",
+            "# The GRCh38 reference assembly as a sample\n# rsid\tchromosome\tposition\tgenotype\n"));
+        QCOMPARE(s.format, GenomeFormat::Unknown);
+        QVERIFY2(s.description.contains("only 2 comment line"), qPrintable(s.description));
+        QCOMPARE(sniffGenome(write("zero.txt", "")).description, QString("empty file"));
+    }
+
     void missingFile()
     {
         const GenomeSniff s = sniffGenome(dir.filePath("nope.txt"));

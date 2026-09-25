@@ -156,8 +156,8 @@ void WgsPage::refresh()
 
     if (!allRequired)
         m_requirements->setText(QStringLiteral(
-            "<span style=\"color:palette(highlight)\"><b>Requirements not installed.</b></span> "
-            "Install them with:<br><code>%1</code>").arg(ToolLocator::installHint()));
+            "<span style=\"color:palette(highlight)\"><b>Sequencing tools not installed.</b></span> "
+            "%1").arg(ToolLocator::installHint().toHtmlEscaped()));
     else
         m_requirements->clear();
     m_requirements->setVisible(!m_requirements->text().isEmpty());
@@ -230,7 +230,7 @@ void WgsPage::startForFile(const QString &fastq, const QString &name)
     if (m_job.isRunning())
         return;
     if (!m_requirements->text().isEmpty()) {
-        m_log->appendPlainText("The WGS tools are not installed; see above for the install command.");
+        m_log->appendPlainText("The sequencing tools are not installed; see the note above the tool list.");
         return;
     }
     if (ReferenceGenome::status(RepoPaths::root()).ready()) {
