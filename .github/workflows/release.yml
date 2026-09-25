@@ -39,16 +39,19 @@ jobs:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Install Qt 5.15 (MinGW 64-bit kit)
+      # Qt 6 on Windows carries a native Schannel TLS backend, so HTTPS
+      # (ClinVar, Ensembl, 1000 Genomes) needs no OpenSSL DLLs; Qt 5.15 can
+      # only load OpenSSL 1.1, which Qt no longer distributes.
+      - name: Install Qt 6.8 (MinGW 64-bit kit)
         uses: jurplel/install-qt-action@v4
         with:
-          version: '5.15.2'
-          arch: win64_mingw81
-          tools: tools_mingw,qt.tools.win64_mingw810 tools_openssl_x64,qt.tools.openssl.win_x64
+          version: '6.8.3'
+          arch: win64_mingw
+          tools: tools_mingw1310,qt.tools.win64_mingw1310
           cache: true
       - name: Put the MinGW toolchain on PATH
         shell: pwsh
-        run: echo "$env:IQTA_TOOLS\mingw810_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+        run: echo "$env:IQTA_TOOLS\mingw1310_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
       - name: Build and package
         shell: cmd
         run: packaging\windows-package.bat

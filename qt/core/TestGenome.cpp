@@ -15,6 +15,7 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QProcess>
+#include <QRegularExpression>
 #include <QTemporaryDir>
 #include <QThread>
 #include <QTimer>
@@ -499,7 +500,7 @@ QString genotypeFromCall(const QString &ref, const QStringList &alts, const QStr
     if (offset < 0 || offset >= ref.size())
         return QString();
     QString g;
-    for (const QString &i : gt.split(QRegExp("[|/]"))) {
+    for (const QString &i : gt.split(QRegularExpression("[|/]"))) {
         bool ok;
         const int k = i.toInt(&ok);
         if (!ok || k < 0 || k >= alleles.size())

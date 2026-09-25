@@ -67,15 +67,17 @@ run locally after a build; the workflow runs exactly those.
 
 ### Windows
 
-Prerequisites: [Qt](https://www.qt.io/download-qt-installer) 5.15 or 6.x
-with the **MinGW 64-bit** kit (the online installer offers it under the Qt
+Prerequisites: [Qt](https://www.qt.io/download-qt-installer) **6.8** with
+the **MinGW 64-bit** kit (the online installer offers it under the Qt
 version; it brings the compiler and `mingw32-make`, so nothing else is
 needed), and [Git for Windows](https://git-scm.com/download/win) or a zip of
-this repository.
+this repository. Qt 6 matters on Windows: its built-in Schannel TLS backend
+gives the app HTTPS for the data downloads, whereas Qt 5.15 needs OpenSSL 1.1
+DLLs that Qt no longer distributes.
 
 Either open `genetic-health.pro` in **Qt Creator**, pick the MinGW kit when
 asked, and press *Build* — or from the **Qt MinGW command prompt** (Start
-menu → the Qt folder → *Qt 5.15.x (MinGW 64-bit)*):
+menu → the Qt folder → *Qt 6.8.x (MinGW 64-bit)*):
 
 ```bat
 cd \path\to\DNA_c
