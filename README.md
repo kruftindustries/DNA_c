@@ -49,7 +49,7 @@ the workflow in `.github/workflows/release.yml` from a version tag:
 | Platform | Package | Run |
 |---|---|---|
 | Linux x86_64 | `Genetic_Health-x86_64.AppImage` | `chmod +x` and run (needs FUSE 2: `sudo apt install libfuse2`, or `--appimage-extract` and run `squashfs-root/usr/bin/genetic-health-qt`). `genetic-health-linux-x86_64.tar.gz` is the same tree as a folder: unpack, run `./genetic-health-qt` (or `./gh-data`, `./genetic-health`); the Qt runtime it was built against sits in `usr/lib`, found through the executables' RUNPATH, so keep the folder together. |
-| Windows x64 | `genetic-health-windows-x64.zip` | Unzip anywhere (the whole zip: the `tools\` folder holds samtools, bcftools and minimap2 for the FASTQ workflow); run `genetic-health-qt.exe`. `gh-data.exe` and `genetic-health.exe` are in the same folder. The build is unsigned, so SmartScreen asks once (*More info → Run anyway*). |
+| Windows x64 | `genetic-health-windows-x64.zip` | Unzip anywhere (the whole zip: the `tools\` folder holds samtools, bcftools, minimap2 and fastp for the FASTQ workflow); run `genetic-health-qt.exe`. `gh-data.exe` and `genetic-health.exe` are in the same folder. The build is unsigned, so SmartScreen asks once (*More info → Run anyway*). |
 | macOS x86_64 | `genetic-health-macos-x86_64.dmg` | Drag *Genetic Health* to Applications. Unsigned: first launch is right-click → *Open*. `gh-data` and the engine are inside the bundle at `Genetic Health.app/Contents/MacOS/`. Runs under Rosetta on Apple silicon. |
 
 A packaged build keeps its data — annotation downloads, the reference genome,
@@ -97,12 +97,12 @@ is standard Qt, so it should work, but the MinGW kit is the supported path.
 Everything in the 23andMe/AncestryDNA workflow — the app, the data downloads,
 the report — is native and needs nothing beyond Qt. The FASTQ workflow and
 the 1000 Genomes test sample also need samtools, bcftools and minimap2. The
-release zip ships them in `tools\` beside the app (built from their release
-tarballs by `packaging/windows-tools.sh` in an MSYS2 MinGW64 shell, the
-environment those projects test their own Windows builds in); a local build
-finds them in a `tools\` folder next to `genetic-health-qt.exe`, so copy
-that folder from the release zip. fastp is built the same way when its
-dependencies allow; the pipeline skips read QC without it.
+release zip ships them, and fastp, in `tools\` beside the app (built from
+their release tarballs by `packaging/windows-tools.sh` in an MSYS2 MinGW64
+shell, the environment htslib, samtools and bcftools test their own Windows
+builds in; fastp gets a small MinGW shim, `packaging/fastp-mingw.{h,cpp}`);
+a local build finds them in a `tools\` folder next to
+`genetic-health-qt.exe`, so copy that folder from the release zip.
 
 ### Linux
 
@@ -167,7 +167,7 @@ Prerequisites: **minimap2**, **samtools** and **bcftools**, plus optionally
 
 | Platform | Where they come from |
 |---|---|
-| Windows | Included in the release zip (`tools\` beside the app). Nothing to install. |
+| Windows | All four are included in the release zip (`tools\` beside the app). Nothing to install. |
 | Linux | `sudo apt install minimap2 samtools bcftools fastp` (Debian/Ubuntu; equivalents on other distributions) |
 | macOS | `brew install minimap2 samtools bcftools fastp` |
 

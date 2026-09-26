@@ -129,7 +129,8 @@ External tools (minimap2, samtools, bcftools; fastp optional) are found by
 `ToolLocator`: the `tools/` folder beside the executable first, then PATH,
 then the Homebrew/MacPorts/`~/.local` prefixes a desktop-launched app does
 not have on PATH. The Windows release ships them in `tools\`, built by
-`packaging/windows-tools.sh` in MSYS2 MinGW64 (the `windows-tools` CI job);
+`packaging/windows-tools.sh` in MSYS2 MinGW64 (the `windows-tools` CI job;
+fastp needs `packaging/fastp-mingw.{h,cpp}` for pwrite and 64-bit ftell);
 Linux and macOS builds tell the user the package-manager command.
 
 ## Interpretation
