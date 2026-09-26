@@ -196,8 +196,9 @@ QString referenceDir(const QString &root) { return root + "/reference"; }
 
 bool isSetUp(const QString &root)
 {
-    return QFileInfo(referenceDir(root) + "/chr22.mmi").exists() &&
-           QFileInfo(referenceDir(root) + "/chr22.fa").exists();
+    return QFileInfo(referenceDir(root) + "/chr22.mmi").size() > 0 &&
+           QFileInfo(referenceDir(root) + "/chr22.fa").size() > 0 &&
+           QFileInfo(referenceDir(root) + "/chr22.fa.fai").size() > 0;
 }
 
 bool setup(const QString &root, const Reporter &reporter, QString *error)
@@ -205,8 +206,14 @@ bool setup(const QString &root, const Reporter &reporter, QString *error)
     const QString dir = referenceDir(root);
     QDir().mkpath(dir);
     const QString gz = dir + "/chr22.fa.gz", fa = dir + "/chr22.fa", mmi = dir + "/chr22.mmi";
-    if (!QFileInfo(fa).exists()) {
-        if (!QFileInfo(gz).exists()) {
+    // Files an earlier, failed attempt left empty (v0.2.1 on Windows wrote a
+    // 0-byte chr22.fa) are redone, not trusted.
+    const auto present = [](const QString &p) { return QFileInfo(p).size() > 0; };
+    for (const QString &p : {fa, fa + ".fai", mmi, gz})
+        if (QFileInfo(p).exists() && !present(p))
+            QFile::remove(p);
+    if (!present(fa)) {
+        if (!present(gz)) {
             reporter.log(QStringLiteral("downloading %1").arg(QLatin1String(kFastaUrl)));
             if (!Downloader::download(QUrl(QLatin1String(kFastaUrl)), gz, reporter, error))
                 return false;
@@ -216,9 +223,9 @@ bool setup(const QString &root, const Reporter &reporter, QString *error)
         if (!GzipStream::decompressFile(gz, fa, progress, error))
             return false;
     }
-    if (!QFileInfo(fa + ".fai").exists() && !runTool("samtools", {"faidx", fa}, reporter, error))
+    if (!present(fa + ".fai") && !runTool("samtools", {"faidx", fa}, reporter, error))
         return false;
-    if (!QFileInfo(mmi).exists() && !runTool("minimap2", {"-x", "sr", "-d", mmi, fa}, reporter, error))
+    if (!present(mmi) && !runTool("minimap2", {"-x", "sr", "-d", mmi, fa}, reporter, error))
         return false;
     reporter.log(QStringLiteral("ready: %1").arg(fa));
     return true;

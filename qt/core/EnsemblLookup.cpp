@@ -19,28 +19,37 @@ namespace EnsemblLookup {
 const char *const kEndpoint = "https://grch37.rest.ensembl.org/variation/homo_sapiens";
 const char *const kEndpointGRCh38 = "https://rest.ensembl.org/variation/homo_sapiens";
 
+namespace {
+
+QJsonObject readLookup(const QString &path)
+{
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly))
+        return {};
+    return QJsonDocument::fromJson(f.readAll()).object();
+}
+
+} // namespace
+
 bool seedLookup(const QString &path)
 {
-    if (QFile::exists(path))
-        return true;
     QFile seed(QStringLiteral(":/seed/rsid_positions_grch37.json"));
     if (!seed.exists())
-        return false;
+        return QFile::exists(path);
+    // Only a lookup with nothing in it is seeded: a file with entries is
+    // someone's own (a test fixture, a hand-maintained copy) and update()
+    // fetches what it lacks. "Nothing in it" rather than "does not exist"
+    // because v0.2.0 saved an empty lookup when every Ensembl batch failed.
+    if (!readLookup(path).isEmpty())
+        return true;
     QDir().mkpath(QFileInfo(path).absolutePath());
-    if (!QFile::copy(seed.fileName(), path))
-        return false;
-    // A copy of a resource inherits its read-only permissions.
-    QFile::setPermissions(path, QFile::ReadOwner | QFile::WriteOwner | QFile::ReadGroup | QFile::ReadOther);
-    return true;
+    return saveLookup(path, readLookup(seed.fileName()));
 }
 
 QJsonObject loadLookup(const QString &path)
 {
     seedLookup(path);
-    QFile f(path);
-    if (!f.open(QIODevice::ReadOnly))
-        return {};
-    return QJsonDocument::fromJson(f.readAll()).object();
+    return readLookup(path);
 }
 
 bool saveLookup(const QString &path, const QJsonObject &lookup)

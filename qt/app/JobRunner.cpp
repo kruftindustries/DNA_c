@@ -32,7 +32,16 @@ void JobRunner::start(const Job &job)
         rep.cancelled = [this] { return m_cancel.load(); };
         QString error;
         const bool ok = job(rep, &error);
-        QMetaObject::invokeMethod(this, [this, ok, error] { emit finished(ok, error); }, Qt::QueuedConnection);
+        // Emitted from the GUI thread once the worker has really exited, so
+        // a slot that refreshes button states sees isRunning() == false.
+        // (Posted from inside the thread, the event could run while the
+        // thread was still winding down, and the page re-disabled its
+        // buttons until the next refresh.)
+        QMetaObject::invokeMethod(this, [this, ok, error] {
+            if (m_thread)
+                m_thread->wait();
+            emit finished(ok, error);
+        }, Qt::QueuedConnection);
     });
     m_thread->start();
 }

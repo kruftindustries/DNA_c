@@ -27,6 +27,23 @@ private slots:
         QVERIFY(EnsemblLookup::saveLookup(path, lookup));
     }
 
+    // A lookup an earlier build saved empty (every Ensembl batch failed)
+    // is seeded like a missing one; a lookup with entries is left alone.
+    void emptyLookupSeededOwnEntriesKept()
+    {
+        const QString path = dir.filePath("partial/rsid_positions_grch37.json");
+        QDir().mkpath(dir.filePath("partial"));
+        QJsonObject mine;
+        mine.insert("rs429358", QJsonObject{{"chrom", "19"}, {"pos", "1"}});
+        QVERIFY(EnsemblLookup::saveLookup(path, mine));
+        QCOMPARE(EnsemblLookup::loadLookup(path), mine);
+
+        const QString empty = dir.filePath("empty/rsid_positions_grch37.json");
+        QDir().mkpath(dir.filePath("empty"));
+        QVERIFY(EnsemblLookup::saveLookup(empty, QJsonObject()));
+        QVERIFY(EnsemblLookup::loadLookup(empty).size() > 500);
+    }
+
     void mergedRsidStoredUnderRequestedId()
     {
         const QJsonObject results = QJsonDocument::fromJson(R"({
