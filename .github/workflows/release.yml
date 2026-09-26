@@ -53,6 +53,7 @@ jobs:
           install: >-
             mingw-w64-x86_64-toolchain mingw-w64-x86_64-zlib mingw-w64-x86_64-bzip2
             mingw-w64-x86_64-xz mingw-w64-x86_64-libdeflate mingw-w64-x86_64-curl-winssl
+            mingw-w64-x86_64-isa-l mingw-w64-x86_64-highway
             make autoconf automake tar
       - name: Build samtools, bcftools, minimap2
         run: packaging/windows-tools.sh
@@ -69,6 +70,7 @@ jobs:
           & $t\samtools.exe --version | Select-Object -First 1
           & $t\bcftools.exe --version | Select-Object -First 1
           & $t\minimap2.exe --version
+          if (Test-Path $t\fastp.exe) { & $t\fastp.exe --version } else { Write-Host "fastp not built" }
           & $t\samtools.exe faidx https://ftp.ebi.ac.uk/pub/ensemblorganisms/GCA/000/001/405/14/ensembl/2013_09/genome/unmasked.fa.bgz 19:45411941-45411941
           & $t\bcftools.exe view -H -r 22:16050075 https://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5b.20130502.genotypes.vcf.gz | ForEach-Object { $_.Substring(0, 60) }
       - uses: actions/upload-artifact@v7

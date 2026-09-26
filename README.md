@@ -101,8 +101,8 @@ release zip ships them in `tools\` beside the app (built from their release
 tarballs by `packaging/windows-tools.sh` in an MSYS2 MinGW64 shell, the
 environment those projects test their own Windows builds in); a local build
 finds them in a `tools\` folder next to `genetic-health-qt.exe`, so copy
-that folder from the release zip. fastp has no Windows build; the pipeline
-skips read QC without it.
+that folder from the release zip. fastp is built the same way when its
+dependencies allow; the pipeline skips read QC without it.
 
 ### Linux
 
@@ -167,7 +167,7 @@ Prerequisites: **minimap2**, **samtools** and **bcftools**, plus optionally
 
 | Platform | Where they come from |
 |---|---|
-| Windows | Included in the release zip (`tools\` beside the app). Nothing to install. fastp is not available and QC is skipped. |
+| Windows | Included in the release zip (`tools\` beside the app). Nothing to install. |
 | Linux | `sudo apt install minimap2 samtools bcftools fastp` (Debian/Ubuntu; equivalents on other distributions) |
 | macOS | `brew install minimap2 samtools bcftools fastp` |
 

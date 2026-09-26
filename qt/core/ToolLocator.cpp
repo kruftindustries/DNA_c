@@ -103,7 +103,7 @@ QString installHint()
 #elif defined(Q_OS_WIN)
     return QStringLiteral("The Windows release ships them in the tools folder beside "
                           "genetic-health-qt.exe (%1); extract the whole zip, or copy that folder "
-                          "from it. fastp has no Windows build and is skipped.")
+                          "from it. Without fastp, read QC is skipped.")
         .arg(QDir::toNativeSeparators(bundledDir()));
 #else
     return QStringLiteral("Install them with: sudo apt install minimap2 samtools bcftools "

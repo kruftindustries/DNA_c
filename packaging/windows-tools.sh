@@ -4,12 +4,15 @@
 # tarballs, in an MSYS2 MinGW64 shell. This is the environment their own
 # projects test Windows builds in (htslib, samtools and bcftools each run a
 # mingw64 job upstream); minimap2 has no Windows CI but carries a WIN32
-# branch and builds as is. fastp is not built: it needs ISA-L and Highway,
-# has no Windows port, and the pipeline skips read QC without it.
+# branch and builds as is. fastp (read QC, optional to the pipeline) has no
+# Windows port of its own but nothing POSIX-only in its sources; it is
+# built best-effort from MSYS2's isa-l, libdeflate and highway packages,
+# and left out with a warning if that fails.
 #
 # Packages (pacman -S): mingw-w64-x86_64-toolchain mingw-w64-x86_64-zlib
 #   mingw-w64-x86_64-bzip2 mingw-w64-x86_64-xz mingw-w64-x86_64-libdeflate
-#   mingw-w64-x86_64-curl-winssl make autoconf automake
+#   mingw-w64-x86_64-curl-winssl mingw-w64-x86_64-isa-l mingw-w64-x86_64-highway
+#   make autoconf automake
 # curl-winssl rather than curl: htslib reaches https:// URLs (the Ensembl
 # FASTA, the 1000 Genomes VCFs) through libcurl, and the Schannel build uses
 # the Windows certificate store, so no CA bundle has to be shipped.
@@ -23,6 +26,7 @@ set -euo pipefail
 
 HTS_VERSION=${HTS_VERSION:-1.24}
 MINIMAP2_VERSION=${MINIMAP2_VERSION:-2.31}
+FASTP_VERSION=${FASTP_VERSION:-1.3.7}
 
 here=$(cd "$(dirname "$0")" && pwd)
 out=${1:-$here/tools/windows}
@@ -30,10 +34,10 @@ work=${WORK:-$here/tools/build-windows}
 mkdir -p "$out" "$work"
 jobs=$(nproc 2>/dev/null || echo 4)
 
-fetch() {  # url
+fetch() {  # url [tar flags]
     local f=$work/$(basename "$1")
     [ -s "$f" ] || curl -fsSL --retry 5 --retry-delay 5 -o "$f" "$1"
-    tar -xjf "$f" -C "$work"
+    tar -x${2:-j}f "$f" -C "$work"
 }
 
 echo "== htslib $HTS_VERSION"
@@ -65,6 +69,15 @@ fetch "https://github.com/lh3/minimap2/releases/download/v$MINIMAP2_VERSION/mini
 # The makefiles name their targets without .exe; MinGW's gcc adds the
 # suffix to the file it writes, hence the target names above and the
 # renames in case a toolchain does not.
+echo "== fastp $FASTP_VERSION (best effort)"
+fastp_built=no
+if fetch "https://github.com/OpenGene/fastp/archive/refs/tags/v$FASTP_VERSION.tar.gz" z \
+   && ( cd "$work/fastp-$FASTP_VERSION" && make -j"$jobs" fastp && { [ -f fastp.exe ] || mv fastp fastp.exe; } ); then
+    fastp_built=yes
+else
+    echo "::warning::fastp $FASTP_VERSION did not build under MSYS2; the Windows package ships without it (read QC is skipped)"
+fi
+
 echo "== collecting into $out"
 rm -rf "$out"
 mkdir -p "$out/licenses"
@@ -74,17 +87,21 @@ cp "$work/htslib-$HTS_VERSION/LICENSE" "$out/licenses/htslib-LICENSE"
 cp "$work/samtools-$HTS_VERSION/LICENSE" "$out/licenses/samtools-LICENSE"
 cp "$work/bcftools-$HTS_VERSION/LICENSE" "$out/licenses/bcftools-LICENSE"
 cp "$work/minimap2-$MINIMAP2_VERSION/LICENSE.txt" "$out/licenses/minimap2-LICENSE"
+if [ "$fastp_built" = yes ]; then
+    cp "$work/fastp-$FASTP_VERSION/fastp.exe" "$out/"
+    cp "$work/fastp-$FASTP_VERSION/LICENSE" "$out/licenses/fastp-LICENSE"
+fi
 cat > "$out/README.txt" <<TXT
 Sequencing tools for the Genetic Health FASTQ pipeline and its 1000 Genomes
 test sample, built for Windows x64 by packaging/windows-tools.sh:
 
   samtools $HTS_VERSION, bcftools $HTS_VERSION (htslib $HTS_VERSION)   https://www.htslib.org
   minimap2 $MINIMAP2_VERSION                                          https://github.com/lh3/minimap2
+$([ "$fastp_built" = yes ] && echo "  fastp $FASTP_VERSION                                            https://github.com/OpenGene/fastp" \
+                            || echo "  (fastp did not build for this release; the pipeline skips read QC without it)")
 
 Each is MIT-licensed by its authors (see licenses/). The DLLs are the MinGW-w64
 runtime libraries they load (zlib, bzip2, xz, libdeflate, libcurl, winpthreads, ...).
-fastp is not included: it has no Windows build, and the pipeline skips read QC
-without it.
 TXT
 
 # The DLLs each executable loads from the MinGW prefix (system DLLs are
