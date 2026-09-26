@@ -22,6 +22,16 @@ class TextTableTest : public QObject {
     }
 
 private slots:
+    void outputLinesStripCarriageReturns()
+    {
+        const QStringList ids = outputLines(QString("rs1\r\nrs2\r\n\r\nrs3\n"));
+        QCOMPARE(ids, (QStringList{"rs1", "rs2", "rs3"}));
+        QCOMPARE(outputLines(QString("rs1\nrs2")), (QStringList{"rs1", "rs2"}));
+        const QList<QByteArray> rows = outputLines(QByteArray("22\t100\tA\tG\t0|1\r\n"));
+        QCOMPARE(rows.size(), 1);
+        QVERIFY(!rows[0].endsWith('\r'));
+    }
+
     void plainRows()
     {
         const auto rows = readAll("a\tb\tc\r\n1\t2\t3\n");

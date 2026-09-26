@@ -63,7 +63,12 @@ fetch "https://github.com/samtools/bcftools/releases/download/$HTS_VERSION/bcfto
 echo "== minimap2 $MINIMAP2_VERSION"
 fetch "https://github.com/lh3/minimap2/releases/download/v$MINIMAP2_VERSION/minimap2-$MINIMAP2_VERSION.tar.bz2"
 ( cd "$work/minimap2-$MINIMAP2_VERSION"
-  make -j"$jobs" minimap2
+  # mingw-w64's ftell/fseek are 32-bit. minimap2 tells whether an index has
+  # more parts by comparing ftell() with the index size (index.c,
+  # mm_idx_reader_eof); with an 8.5 GB whole-genome .mmi that never
+  # matched, minimap2 assumed a multi-part index and wrote SAM without @SQ
+  # lines. HAVE_KALLOC is the Makefile's own CPPFLAGS, kept.
+  make -j"$jobs" CPPFLAGS="-DHAVE_KALLOC -Dftell=_ftelli64 -Dfseek=_fseeki64" minimap2
   [ -f minimap2.exe ] || mv minimap2 minimap2.exe )
 
 # The makefiles name their targets without .exe; MinGW's gcc adds the

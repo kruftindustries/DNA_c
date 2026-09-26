@@ -1,4 +1,5 @@
 #include "DataSourcesPage.h"
+#include "TextTable.h"
 
 #include <QFileInfo>
 #include <QProcess>
@@ -122,7 +123,7 @@ DataSourcesPage::DataSourcesPage(QWidget *parent) : QWidget(parent)
                 if (e) *e = QStringLiteral("could not run %1 --list-rsids").arg(binary);
                 return false;
             }
-            const QStringList rsids = QString::fromUtf8(list.readAllStandardOutput()).split('\n', Qt::SkipEmptyParts);
+            const QStringList rsids = outputLines(QString::fromUtf8(list.readAllStandardOutput()));
             QStringList unresolved;
             const bool ok = EnsemblLookup::update(dataDir + "/rsid_positions_grch37.json", rsids, r, &unresolved);
             if (!unresolved.isEmpty())

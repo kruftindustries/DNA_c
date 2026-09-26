@@ -71,3 +71,10 @@ private:
 // terminator: a field is quoted when it contains a tab, a quote, a CR or an
 // LF, with quotes doubled.
 QByteArray tsvRow(const QStringList &fields);
+
+// The non-empty lines of a tool's stdout, without line terminators. On
+// Windows a MinGW-built program's stdout is in text mode and every line
+// ends in "\r\n"; splitting on '\n' alone left a '\r' on each rsID the
+// engine listed, so nothing ever matched the position lookup.
+QStringList outputLines(const QString &text);
+QList<QByteArray> outputLines(const QByteArray &text);

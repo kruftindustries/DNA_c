@@ -1,4 +1,5 @@
 #include "WgsPipeline.h"
+#include "TextTable.h"
 
 #include <QDir>
 #include <QFile>
@@ -302,7 +303,7 @@ bool WgsPipeline::run(WgsOutcome *outcome, QString *error)
         QString ids;
         if (!runProcess(m_cfg.analysisBinary, {"--list-rsids"}, &ids))
             return false;
-        const QStringList rsids = ids.split('\n', Qt::SkipEmptyParts);
+        const QStringList rsids = outputLines(ids);
         m_rep.log(QStringLiteral("Step 1/6: rsID positions (Ensembl GRCh37, cached)"));
         m_rep.stage(QStringLiteral("Looking up rsID positions"), 5);
         if (!EnsemblLookup::update(m_cfg.rsidLookup, rsids, m_rep, nullptr)) {

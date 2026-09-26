@@ -25,7 +25,7 @@
 #include "gh_traits.h"
 
 #ifndef GH_VERSION            /* set by engine.pro / c/Makefile from the release version */
-#define GH_VERSION "0.2.4"
+#define GH_VERSION "0.2.5"
 #endif
 
 /* Everything the scorers produce, gathered for output. */

@@ -176,3 +176,29 @@ bool LineReader::readLine(QByteArray &line)
         m_buffer = chunk;
     }
 }
+
+QStringList outputLines(const QString &text)
+{
+    QStringList out;
+    for (const QString &raw : text.split(QLatin1Char('\n'))) {
+        QString line = raw;
+        if (line.endsWith(QLatin1Char('\r')))
+            line.chop(1);
+        if (!line.isEmpty())
+            out << line;
+    }
+    return out;
+}
+
+QList<QByteArray> outputLines(const QByteArray &text)
+{
+    QList<QByteArray> out;
+    for (const QByteArray &raw : text.split('\n')) {
+        QByteArray line = raw;
+        if (line.endsWith('\r'))
+            line.chop(1);
+        if (!line.isEmpty())
+            out << line;
+    }
+    return out;
+}

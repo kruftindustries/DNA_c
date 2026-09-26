@@ -4,7 +4,7 @@
 # unit tests.
 TEMPLATE = app
 TARGET = genetic-health
-VERSION = 0.2.4
+VERSION = 0.2.5
 DEFINES += GH_VERSION=\\\"$$VERSION\\\"
 CONFIG += console warn_on
 CONFIG -= qt app_bundle

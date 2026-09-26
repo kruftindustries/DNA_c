@@ -1,4 +1,5 @@
 #include "TestGenome.h"
+#include "TextTable.h"
 
 #include <QCryptographicHash>
 #include <QDateTime>
@@ -129,7 +130,7 @@ bool listRsids(const Options &options, QStringList *rsids, QString *error)
             *error = QStringLiteral("could not run %1 --list-rsids").arg(options.analysisBinary);
         return false;
     }
-    *rsids = QString::fromUtf8(list.readAllStandardOutput()).split('\n', Qt::SkipEmptyParts);
+    *rsids = outputLines(QString::fromUtf8(list.readAllStandardOutput()));
     return true;
 }
 
@@ -361,7 +362,7 @@ bool referenceFromRest(const Options &options, const QJsonObject &lookup, const 
 int applyRows(const QByteArray &output, QList<Site> &sites)
 {
     QMap<qint64, QStringList> rows;
-    for (const QByteArray &line : output.split('\n')) {
+    for (const QByteArray &line : outputLines(output)) {
         const QList<QByteArray> f = line.split('\t');
         if (f.size() >= 5)
             rows[f[1].toLongLong()] = QStringList{QString::fromUtf8(f[2]), QString::fromUtf8(f[3]),
