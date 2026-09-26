@@ -37,6 +37,26 @@ export OUTPUT="$DIST/Genetic_Health-$ARCH.AppImage"
 
 # The same tree as a folder: usr/bin/{genetic-health-qt,gh-data,genetic-health}
 # with the libraries in usr/lib, for running gh-data directly or without FUSE.
-tar czf "$DIST/genetic-health-linux-$ARCH.tar.gz" -C AppDir usr
+# The portable folder: the AppDir tree plus launchers at the top so the
+# executables are the first thing seen after unpacking. Symlinks suffice
+# because the loader resolves $ORIGIN (RUNPATH $ORIGIN/../lib) against the
+# real file in usr/bin, not the link.
+for exe in genetic-health-qt gh-data genetic-health; do
+    ln -sfn "usr/bin/$exe" "AppDir/$exe"
+done
+cat > AppDir/README.txt <<TXT
+Genetic Health, portable Linux build.
+
+  ./genetic-health-qt   the desktop app
+  ./gh-data             data updates, test genomes, the WGS pipeline (console)
+  ./genetic-health      the analysis engine
+
+usr/lib holds the Qt 5 runtime and its X11/ICU dependencies from the build
+system (Ubuntu 22.04), found through the executables' RUNPATH; glibc,
+libstdc++ and zlib come from your system. Keep the folder together. The
+sequencing tools (minimap2, samtools, bcftools; fastp optional) are not
+included on Linux: sudo apt install minimap2 samtools bcftools fastp
+TXT
+tar czf "$DIST/genetic-health-linux-$ARCH.tar.gz" -C AppDir usr genetic-health-qt gh-data genetic-health README.txt
 rm -rf AppDir
 ls -la "$DIST"

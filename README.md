@@ -48,7 +48,7 @@ the workflow in `.github/workflows/release.yml` from a version tag:
 
 | Platform | Package | Run |
 |---|---|---|
-| Linux x86_64 | `Genetic_Health-x86_64.AppImage` | `chmod +x` and run (needs FUSE 2: `sudo apt install libfuse2`, or `--appimage-extract` and run `squashfs-root/usr/bin/genetic-health-qt`). `genetic-health-linux-x86_64.tar.gz` is the same tree as a folder, with `usr/bin/gh-data` and the engine beside the app. |
+| Linux x86_64 | `Genetic_Health-x86_64.AppImage` | `chmod +x` and run (needs FUSE 2: `sudo apt install libfuse2`, or `--appimage-extract` and run `squashfs-root/usr/bin/genetic-health-qt`). `genetic-health-linux-x86_64.tar.gz` is the same tree as a folder: unpack, run `./genetic-health-qt` (or `./gh-data`, `./genetic-health`); the Qt runtime it was built against sits in `usr/lib`, found through the executables' RUNPATH, so keep the folder together. |
 | Windows x64 | `genetic-health-windows-x64.zip` | Unzip anywhere (the whole zip: the `tools\` folder holds samtools, bcftools and minimap2 for the FASTQ workflow); run `genetic-health-qt.exe`. `gh-data.exe` and `genetic-health.exe` are in the same folder. The build is unsigned, so SmartScreen asks once (*More info → Run anyway*). |
 | macOS x86_64 | `genetic-health-macos-x86_64.dmg` | Drag *Genetic Health* to Applications. Unsigned: first launch is right-click → *Open*. `gh-data` and the engine are inside the bundle at `Genetic Health.app/Contents/MacOS/`. Runs under Rosetta on Apple silicon. |
 

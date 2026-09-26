@@ -5,9 +5,9 @@
 # projects test Windows builds in (htslib, samtools and bcftools each run a
 # mingw64 job upstream); minimap2 has no Windows CI but carries a WIN32
 # branch and builds as is. fastp (read QC, optional to the pipeline) has no
-# Windows port of its own but nothing POSIX-only in its sources; it is
-# built best-effort from MSYS2's isa-l, libdeflate and highway packages,
-# and left out with a warning if that fails.
+# Windows port of its own; it is built best-effort from MSYS2's isa-l,
+# libdeflate and highway packages with fastp-mingw.{h,cpp} supplying pwrite
+# and 64-bit ftell/fseek, and left out with a warning if that fails.
 #
 # Packages (pacman -S): mingw-w64-x86_64-toolchain mingw-w64-x86_64-zlib
 #   mingw-w64-x86_64-bzip2 mingw-w64-x86_64-xz mingw-w64-x86_64-libdeflate
@@ -72,7 +72,10 @@ fetch "https://github.com/lh3/minimap2/releases/download/v$MINIMAP2_VERSION/mini
 echo "== fastp $FASTP_VERSION (best effort)"
 fastp_built=no
 if fetch "https://github.com/OpenGene/fastp/archive/refs/tags/v$FASTP_VERSION.tar.gz" z \
-   && ( cd "$work/fastp-$FASTP_VERSION" && make -j"$jobs" fastp && { [ -f fastp.exe ] || mv fastp fastp.exe; } ); then
+   && ( cd "$work/fastp-$FASTP_VERSION" \
+        && cp "$here/fastp-mingw.cpp" src/fastp_mingw_compat.cpp \
+        && make -j"$jobs" CXX="g++ -include $here/fastp-mingw.h" fastp \
+        && { [ -f fastp.exe ] || mv fastp fastp.exe; } ); then
     fastp_built=yes
 else
     echo "::warning::fastp $FASTP_VERSION did not build under MSYS2; the Windows package ships without it (read QC is skipped)"
