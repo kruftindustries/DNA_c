@@ -14,7 +14,8 @@ OPT     ?= -O2
 # SAN must reach both the compile and the link step, or the sanitizer runtime
 # is never linked in.
 SAN     ?=
-CFLAGS  += $(CSTD) $(WARN) $(OPT) $(SAN) -Iinclude
+VERSION ?= $(shell sed -n 's/^VERSION = //p' engine.pro)
+CFLAGS  += $(CSTD) $(WARN) $(OPT) $(SAN) -Iinclude -DGH_VERSION='"$(VERSION)"'
 LDFLAGS += $(SAN)
 LDLIBS  += -lm
 

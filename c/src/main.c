@@ -24,7 +24,9 @@
 #include "gh_snpdb.h"
 #include "gh_traits.h"
 
-#define GH_VERSION "0.2.0"
+#ifndef GH_VERSION            /* set by engine.pro / c/Makefile from the release version */
+#define GH_VERSION "0.2.4"
+#endif
 
 /* Everything the scorers produce, gathered for output. */
 typedef struct {
