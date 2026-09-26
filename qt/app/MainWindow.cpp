@@ -25,7 +25,7 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    setWindowTitle("Genetic Health");
+    setWindowTitle(QStringLiteral("Genetic Health %1").arg(QLatin1String(GH_VERSION)));
     resize(1100, 720);
 
     m_nav = new QListWidget;
@@ -130,7 +130,7 @@ void MainWindow::openSettings()
 void MainWindow::about()
 {
     QMessageBox::about(this, "About Genetic Health",
-        QStringLiteral("<b>Genetic Health</b><br>Qt %1<br>Report viewer: %2<br>"
+        QStringLiteral("<b>Genetic Health %5</b><br>Qt %1<br>Report viewer: %2<br>"
                        "Repository: %3<br>Analysis binary: %4")
             .arg(QT_VERSION_STR,
 #ifdef HAVE_WEBENGINE
@@ -139,5 +139,6 @@ void MainWindow::about()
                  "basic HTML (Qt WebEngine not installed)",
 #endif
                  RepoPaths::root().isEmpty() ? "not found" : RepoPaths::root(),
-                 RepoPaths::analysisBinary().isEmpty() ? "not found" : RepoPaths::analysisBinary()));
+                 RepoPaths::analysisBinary().isEmpty() ? "not found" : RepoPaths::analysisBinary(),
+                 QLatin1String(GH_VERSION)));
 }

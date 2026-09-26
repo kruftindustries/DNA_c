@@ -211,7 +211,17 @@ bool update(const QString &lookupPath, const QStringList &rsids, const Reporter 
                 continue;
             }
             QSet<QString> requested(batch.begin(), batch.end());
-            mergeBatch(results, requested, lookup);
+            const int gained = mergeBatch(results, requested, lookup);
+            if (gained == 0) {
+                // Answered, but with nothing usable: an error object with a
+                // 200 status, or a body that is not the expected map. Show
+                // what came back so the log explains the missing positions.
+                const QByteArray head = QJsonDocument(results).toJson(QJsonDocument::Compact).left(160);
+                reporter.log(QStringLiteral("  Warning: API batch %1 answered with no positions for its %2 ids "
+                                            "(%3 keys in the reply: %4)")
+                                 .arg(i / batchSize + 1).arg(batch.size()).arg(results.size())
+                                 .arg(QString::fromUtf8(head)));
+            }
             QThread::msleep(200);
         }
     }

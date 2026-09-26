@@ -122,6 +122,11 @@ int main(int argc, char **argv)
     const QString cmd = args.takeFirst();
     QString error;
 
+    if (cmd == "--version" || cmd == "version") {
+        std::printf("gh-data %s (Qt %s)\n", GH_VERSION, QT_VERSION_STR);
+        return 0;
+    }
+
     if (cmd == "clinvar") {
         if (ClinVarUpdater::update(dataDir, rep, &error))
             return 0;
