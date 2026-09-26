@@ -67,8 +67,10 @@ fetch "https://github.com/lh3/minimap2/releases/download/v$MINIMAP2_VERSION/mini
   # more parts by comparing ftell() with the index size (index.c,
   # mm_idx_reader_eof); with an 8.5 GB whole-genome .mmi that never
   # matched, minimap2 assumed a multi-part index and wrote SAM without @SQ
-  # lines. HAVE_KALLOC is the Makefile's own CPPFLAGS, kept.
-  make -j"$jobs" CPPFLAGS="-DHAVE_KALLOC -Dftell=_ftelli64 -Dfseek=_fseeki64" minimap2
+  # lines; minimap2-mingw.h maps them to the 64-bit variants (after
+  # stdio.h, so its prototypes are untouched). HAVE_KALLOC is the
+  # Makefile's own CPPFLAGS, kept.
+  make -j"$jobs" CPPFLAGS="-DHAVE_KALLOC -include $here/minimap2-mingw.h" minimap2
   [ -f minimap2.exe ] || mv minimap2 minimap2.exe )
 
 # The makefiles name their targets without .exe; MinGW's gcc adds the
