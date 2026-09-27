@@ -208,7 +208,7 @@ behind the test genomes (clear), and whether the sequencing tools are
 installed. Refresh ClinVar and ClinPGx roughly
 quarterly; the files live in `data/`, the reference in `reference/`.
 
-#### Reference data and toolchains are not included with this software, these works are licensed by their respective owners
+#### Reference data and toolchains are licensed by their respective owners
 
 ## The report
 
