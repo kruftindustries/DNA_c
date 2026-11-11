@@ -41,7 +41,7 @@ else
   NAME_FLAG :=
 endif
 
-.PHONY: help build c qt gui analysis pipeline test test-c qt-test \
+.PHONY: help build c qt gui analysis pipeline test test-c qt-test check-indels \
         reference-samples test-genome update-data update-clinvar \
         update-pharmgkb validate-pharmgkb data-status validate-wgs validate-wgs-setup \
         setup tools check-tools clean clean-all
@@ -138,6 +138,11 @@ qt-test: build
 
 ## Rebuild the reference-assembly samples (samples/): each is the build's own
 ## base at every position the analysis reads, a null test of the tables.
+## Which indel-form entries in ClinPGx, ClinVar and the curated tables the
+## engine can meet from an array's D/I calls (needs python3)
+check-indels:
+	python3 tools/check_indels.py --data data --tables c/src
+
 reference-samples: build
 	./$(GH_DATA) test-genome --sample GRCh37 --output samples/genome_reference_GRCh37.txt
 	./$(GH_DATA) test-genome --sample GRCh38 --output samples/genome_reference_GRCh38.txt

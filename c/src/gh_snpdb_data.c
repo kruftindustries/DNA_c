@@ -1041,11 +1041,14 @@ static const gh_snp_variant v_rs3104413[] = {
     {"TT", "normal", "HLA-DR TT \342\200\224 typical thyroid autoimmune risk", 0},
 };
 
+/* rs8176719 is the ABO c.261delG deletion that defines the O allele; arrays
+ * report it as D (the deletion, O) and I (the insertion, A or B), never as
+ * bases, so the keys are the D/I spellings. */
 static const gh_snp_variant v_rs8176719[] = {
-    {"TT", "type_O", "ABO TT \342\200\224 blood type O, 25% lower VTE risk (protective against clots)", 1},
-    {"TC", "non_O", "ABO heterozygous \342\200\224 non-O blood type, higher VTE risk than type O", 1},
-    {"CT", "non_O", "ABO heterozygous \342\200\224 non-O blood type, higher VTE risk than type O", 1},
-    {"CC", "non_O", "ABO CC \342\200\224 non-O blood type, ~25% higher VTE risk", 1},
+    {"DD", "type_O", "ABO DD \342\200\224 both copies carry the O deletion: blood type O, 25% lower VTE risk (protective against clots)", 1},
+    {"DI", "non_O", "ABO heterozygous \342\200\224 one O deletion, one A/B allele: non-O blood type, higher VTE risk than type O", 1},
+    {"ID", "non_O", "ABO heterozygous \342\200\224 one O deletion, one A/B allele: non-O blood type, higher VTE risk than type O", 1},
+    {"II", "non_O", "ABO II \342\200\224 no O deletion: non-O blood type, ~25% higher VTE risk", 1},
 };
 
 static const gh_snp_variant v_rs10166942[] = {

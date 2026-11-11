@@ -218,8 +218,11 @@ Disease Risk, Body Profile, Mental Health. **Part 2 — details for your
 doctor:** Clinical Findings (ClinVar, ACMG secondary findings, carrier
 screening), Ancestry, Nutrigenomics, Data Quality, Doctor Card
 (print-optimised), References. SVG charts, search and filter, sortable
-tables, CSV export, dark mode, and a database link for every rsID. For a
-PDF, print the page from a browser.
+tables, CSV export, dark mode, and a database link for every rsID. The
+Drug Guide lists every ClinPGx annotation at evidence level 1A–2B whose
+genotype you carry, one row per annotation (a variant with annotations for
+several drugs appears once per drug; before 0.3 only the first annotation on
+each variant was considered). For a PDF, print the page from a browser.
 
 ## What is analysed
 
@@ -254,8 +257,14 @@ Heterozygous findings in recessive genes are carrier status.
 
 Not a clinical diagnosis — see a genetic counsellor or physician for
 decisions. Most evidence is European-biased and the report flags where that
-matters. A pathogenic variant is not a diagnosis. Indels are not analysed.
-Refresh the annotation data quarterly. Low-coverage sequencing misses
+matters. A pathogenic variant is not a diagnosis. Indel calls (the `D`/`I`
+genotypes an array writes for the deletions and insertions it probes, such
+as CFTR F508del or ACE I/D) are read since 0.3: a ClinPGx annotation is
+matched when its rows are one sequence and one `del` form, a ClinVar indel
+when the rsID carries exactly one indel record; repeat alleles and MNVs
+stay unreported, and `tools/check_indels.py` lists what is and is not
+matchable. ClinVar indels match by rsID, which needs an extract made by
+0.3 or later (*Update ClinVar*). Refresh the annotation data quarterly. Low-coverage sequencing misses
 positions; the Data Quality section shows how many were read.
 
 ## License

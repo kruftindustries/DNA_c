@@ -493,9 +493,158 @@ static void test_carrier_screening_uncurated_fallback(void)
     gh_arena_free(a);
 }
 
+/* ------------------------------------------------------------------ */
+/* Indel calls                                                         */
+/* ------------------------------------------------------------------ */
+
+/* The extract may carry an `rsid` column (written by gh-data since 0.3);
+ * indel records are matched through it, since the position an array
+ * reports for an indel and ClinVar's Start need not agree. */
+static const char *CLINVAR_HEADER_RSID =
+    "chrom\tpos\tref\talt\tclinical_significance\treview_status\tgold_stars\t"
+    "all_traits\tsymbol\tinheritance_modes\thgvs_p\thgvs_c\t"
+    "molecular_consequence\txrefs\trsid\n";
+
+static const char *write_clinvar_rsid(const char *name, const char *rows)
+{
+    static char path[256];
+    snprintf(path, sizeof(path), "/tmp/gh_clinvar_rsid_%s.tsv", name);
+    FILE *f = fopen(path, "wb");
+    if (!f) {
+        failures++;
+        return path;
+    }
+    fputs(CLINVAR_HEADER_RSID, f);
+    fputs(rows, f);
+    fclose(f);
+    return path;
+}
+
+static size_t count_findings(const gh_clinvar_result *r)
+{
+    size_t n = 0;
+    for (size_t i = 0; i < GH_CV_CATEGORY_COUNT; i++)
+        n += r->counts[i];
+    return n;
+}
+
+static const gh_cv_finding *first_finding(const gh_clinvar_result *r)
+{
+    for (size_t i = 0; i < GH_CV_CATEGORY_COUNT; i++)
+        if (r->counts[i])
+            return &r->by_category[i][0];
+    return NULL;
+}
+
+static void test_clinvar_indel_calls(void)
+{
+    gh_arena *a = gh_arena_new(1 << 18);
+
+    /* A deletion record (VCF spelling: anchor base kept) at F508del, an
+     * insertion record, an SNV, and two deletion records sharing one rsID. */
+    const char *clinvar = write_clinvar_rsid("indels",
+        "7\t117199644\tATCT\tA\tPathogenic\tpractice guideline\t4\tCystic fibrosis\tCFTR\tgermline\t\t\t\t\trs113993960\n"
+        "1\t97915621\tG\tGA\tLikely_pathogenic\tcriteria provided\t2\tDPD deficiency\tDPYD\tgermline\t\t\t\t\trs72549303\n"
+        "19\t45411941\tT\tC\tPathogenic\tcriteria provided\t2\tCondition S\tAPOE\tgermline\t\t\t\t\trs429358\n"
+        "2\t500\tCAG\tC\tPathogenic\tcriteria provided\t2\tAmbiguous A\tGENEX\tgermline\t\t\t\t\trs900\n"
+        "2\t500\tCAGAG\tC\tPathogenic\tcriteria provided\t2\tAmbiguous B\tGENEX\tgermline\t\t\t\t\trs900\n");
+
+    /* Heterozygous deletion call: a carrier. The array's position (the
+     * first deleted base) differs from ClinVar's anchor. */
+    {
+        const char *genome = write_genome("indel_het",
+            "rs113993960\t7\t117199645\tDI\n");
+        gh_genome g;
+        gh_genome_load(&g, a, genome, NULL);
+        gh_clinvar_result r;
+        check(gh_clinvar_analyze(&r, a, &g, clinvar), "scan runs");
+        check(count_findings(&r) == 1, "het deletion call matched through the rsID");
+        const gh_cv_finding *f = first_finding(&r);
+        if (f) {
+            check_str(f->rsid, "rs113993960", "finding names the rsID");
+            check_str(f->user_genotype, "DI", "finding shows the array call");
+            check(f->is_heterozygous && !f->is_homozygous, "heterozygous");
+            check(f->is_indel, "flagged as an indel call");
+            check(f->category == GH_CV_PATHOGENIC, "pathogenic category");
+        }
+    }
+    /* Homozygous deletion. */
+    {
+        const char *genome = write_genome("indel_hom", "rs113993960\t7\t117199645\tDD\n");
+        gh_genome g;
+        gh_genome_load(&g, a, genome, NULL);
+        gh_clinvar_result r;
+        gh_clinvar_analyze(&r, a, &g, clinvar);
+        const gh_cv_finding *f = first_finding(&r);
+        check(count_findings(&r) == 1 && f && f->is_homozygous, "DD is homozygous for a deletion");
+    }
+    /* Both insertion alleles at a deletion record: reference, no finding. */
+    {
+        const char *genome = write_genome("indel_ref", "rs113993960\t7\t117199645\tII\n");
+        gh_genome g;
+        gh_genome_load(&g, a, genome, NULL);
+        gh_clinvar_result r;
+        gh_clinvar_analyze(&r, a, &g, clinvar);
+        check(count_findings(&r) == 0, "II at a deletion record is reference");
+    }
+    /* Insertion record: I is the variant allele. */
+    {
+        const char *genome = write_genome("ins", "rs72549303\t1\t97915622\tDI\n");
+        gh_genome g;
+        gh_genome_load(&g, a, genome, NULL);
+        gh_clinvar_result r;
+        gh_clinvar_analyze(&r, a, &g, clinvar);
+        const gh_cv_finding *f = first_finding(&r);
+        check(count_findings(&r) == 1 && f && f->is_heterozygous && f->category == GH_CV_LIKELY_PATHOGENIC,
+              "DI at an insertion record is a heterozygous carrier");
+        const char *genome2 = write_genome("ins_ref", "rs72549303\t1\t97915622\tDD\n");
+        gh_genome g2;
+        gh_genome_load(&g2, a, genome2, NULL);
+        gh_clinvar_result r2;
+        gh_clinvar_analyze(&r2, a, &g2, clinvar);
+        check(count_findings(&r2) == 0, "DD at an insertion record is reference");
+    }
+    /* Two indel records on one rsID: D cannot say which, so neither is reported. */
+    {
+        const char *genome = write_genome("ambiguous", "rs900\t2\t501\tDI\n");
+        gh_genome g;
+        gh_genome_load(&g, a, genome, NULL);
+        gh_clinvar_result r;
+        gh_clinvar_analyze(&r, a, &g, clinvar);
+        check(count_findings(&r) == 0, "ambiguous indel rsID is not reported");
+    }
+    /* Unchanged behaviour: a base call never matches an indel record, an
+     * indel call never matches an SNV record. */
+    {
+        const char *genome = write_genome("mismatch",
+            "rs113993960\t7\t117199644\tAA\n"
+            "rs429358\t19\t45411941\tDI\n");
+        gh_genome g;
+        gh_genome_load(&g, a, genome, NULL);
+        gh_clinvar_result r;
+        gh_clinvar_analyze(&r, a, &g, clinvar);
+        check(count_findings(&r) == 0, "bases vs indel record and D/I vs SNV record: no findings");
+    }
+    /* Without the rsid column (an extract from before 0.3), an indel call
+     * still matches when the positions agree. */
+    {
+        const char *old = write_clinvar("indel_pos",
+            "7\t117199645\tATCT\tA\tPathogenic\tpractice guideline\t4\tCystic fibrosis\tCFTR\tgermline\t\t\t\t\n");
+        const char *genome = write_genome("indel_pos", "rs113993960\t7\t117199645\tDI\n");
+        gh_genome g;
+        gh_genome_load(&g, a, genome, NULL);
+        gh_clinvar_result r;
+        gh_clinvar_analyze(&r, a, &g, old);
+        check(count_findings(&r) == 1, "position match still works without an rsid column");
+    }
+
+    gh_arena_free(a);
+}
+
 int main(void)
 {
     test_classify_zygosity();
+    test_clinvar_indel_calls();
     test_clinvar_categories();
     test_clinvar_filters();
     test_clinvar_missing_file();

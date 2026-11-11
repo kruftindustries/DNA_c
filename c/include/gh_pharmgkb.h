@@ -27,10 +27,11 @@ typedef struct {
 } gh_pgx_entry;
 
 typedef struct {
-    gh_map by_rsid;         /* rsID -> gh_pgx_entry* */
-    /* Entries in the order their rsID was first seen, which is what the
-     * Python's dict preserves. Consumers that sort with a stable sort need
-     * this rather than the hash map's arbitrary order. */
+    gh_map by_rsid;         /* rsID -> the first gh_pgx_entry* on it */
+    /* One entry per annotation (an rsID may have several, at different
+     * evidence levels and for different drugs), in the order first seen in
+     * the allele table. Consumers that sort with a stable sort need this
+     * rather than the hash map's arbitrary order. */
     gh_pgx_entry **ordered;
     size_t nordered;
     size_t annotations;     /* rsID-bearing rows read from the annotation table */

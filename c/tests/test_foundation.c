@@ -308,6 +308,22 @@ static void test_genome_rows(void)
     check(classify("rs1\t1\t100\tA\t0", &row) == GH_ROW_NO_CALL, "A 0 no-call");
     check(classify("rs1\t1\t100\tN\tN", &row) == GH_ROW_INVALID, "N N malformed");
 
+    /* Indel calls. 23andMe writes D and I for the deletion and insertion
+     * alleles of the indels it genotypes (CFTR F508del, ACE I/D, ...);
+     * AncestryDNA puts the two letters in its allele columns. They used to
+     * be classed malformed and dropped, which is why no ACE result and no
+     * F508del ever reached a report. */
+    check(classify("rs113993960\t7\t117199645\tDI", &row) == GH_ROW_OK, "23andMe D/I accepted");
+    check_str(row.genotype, "DI", "23andMe D/I genotype kept");
+    check(classify("rs1799752\t17\t61565891\tDD", &row) == GH_ROW_OK, "23andMe DD accepted");
+    check(classify("rs1799752\t17\t61565891\tII", &row) == GH_ROW_OK, "23andMe II accepted");
+    check(classify("rs1799752\t17\t61565891\tI", &row) == GH_ROW_OK, "haploid I accepted");
+    check(classify("rs113993960\t7\t117199645\tD\tI", &row) == GH_ROW_OK, "AncestryDNA D I accepted");
+    check_str(row.genotype, "DI", "AncestryDNA D I joined");
+    check(classify("rs1\t1\t100\tAD", &row) == GH_ROW_INVALID, "a base with an indel letter is malformed");
+    check(gh_genotype_valid("DI") && gh_genotype_valid("II") && gh_genotype_valid("D"), "indel genotypes valid");
+    check(!gh_genotype_valid("DA") && !gh_genotype_valid("DID"), "mixed or long indel strings invalid");
+
     /* Chromosome codes. */
     classify("rs1\t23\t1\tA\tA", &row); check_str(row.chromosome, "X", "23 -> X");
     classify("rs1\t24\t1\tA\tA", &row); check_str(row.chromosome, "Y", "24 -> Y");

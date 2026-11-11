@@ -113,7 +113,7 @@ void gh_analyze(gh_analysis *out, gh_arena *arena, const gh_genome *genome,
 
     /* Walk the ClinPGx entries and keep those the genome genotypes and whose
      * evidence level is strong enough to report. */
-    size_t cap = gh_map_len(&pgx->by_rsid);
+    size_t cap = pgx->nordered;
     if (cap == 0)
         return;
     out->drug_findings = gh_calloc(arena, cap, sizeof(*out->drug_findings));

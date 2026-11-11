@@ -130,6 +130,16 @@ static void list_push(finding_list *l, gh_arena *arena, gh_cv_finding *f)
     l->items[l->count++] = f;
 }
 
+static bool all_bases(const char *s)
+{
+    if (!*s)
+        return false;
+    for (; *s; s++)
+        if (*s != 'A' && *s != 'C' && *s != 'G' && *s != 'T')
+            return false;
+    return true;
+}
+
 bool gh_clinvar_analyze(gh_clinvar_result *out, gh_arena *arena,
                         const gh_genome *g, const char *clinvar_path)
 {
@@ -160,9 +170,21 @@ bool gh_clinvar_analyze(gh_clinvar_result *out, gh_arena *arena,
     int c_hgvs_c = gh_tsv_col(&tsv, "hgvs_c");
     int c_consequence = gh_tsv_col(&tsv, "molecular_consequence");
     int c_xrefs = gh_tsv_col(&tsv, "xrefs");
+    /* Written by gh-data since 0.3; absent from older extracts. Indel
+     * records are matched through it: the position an array reports for
+     * an indel (the first deleted base, usually) and ClinVar's VCF-style
+     * anchor base need not agree, where SNVs sit on one coordinate. */
+    int c_rsid = gh_tsv_col(&tsv, "rsid");
 
     finding_list lists[GH_CV_CATEGORY_COUNT];
     memset(lists, 0, sizeof(lists));
+
+    /* Indel findings by rsID, to drop the rsIDs where more than one distinct
+     * indel is recorded: a D in the array cannot say which deletion. */
+    gh_map indel_alleles;    /* rsid -> "ref>alt" of the first indel finding */
+    gh_map indel_ambiguous;  /* rsid -> non-NULL when a second, different one appeared */
+    gh_map_init(&indel_alleles, arena, 64);
+    gh_map_init(&indel_ambiguous, arena, 16);
 
     /* Reused for the chrom:pos lookup key. */
     char key[128];
@@ -175,32 +197,55 @@ bool gh_clinvar_analyze(gh_clinvar_result *out, gh_arena *arena,
         if (!*chrom || !*pos)
             continue;
 
+        const char *ref = gh_tsv_at(&tsv, c_ref);
+        const char *alt = gh_tsv_at(&tsv, c_alt);
+        const bool indel = strlen(ref) != 1 || strlen(alt) != 1;
+
         snprintf(key, sizeof(key), "%s:%s", chrom, pos);
-        const gh_variant *v = gh_map_get(&g->by_position, key);
+        const gh_variant *v = NULL;
+        if (indel && c_rsid >= 0) {
+            const char *rs = gh_tsv_at(&tsv, c_rsid);
+            if (*rs)
+                v = gh_genome_variant(g, rs);
+        }
+        if (!v)
+            v = gh_map_get(&g->by_position, key);
         if (!v)
             continue;
 
         out->matched++;
 
-        const char *ref = gh_tsv_at(&tsv, c_ref);
-        const char *alt = gh_tsv_at(&tsv, c_alt);
-
-        /* Indels cannot be represented reliably by array genotypes, so only
-         * single-base substitutions are considered. Without this filter the
-         * report fills with false positives in well-known genes. */
-        if (strlen(ref) != 1 || strlen(alt) != 1)
-            continue;
-
         const char *genotype = v->genotype;
-        bool has_variant = strchr(genotype, alt[0]) != NULL;
-        bool is_homozygous = strlen(genotype) == 2 &&
-                             genotype[0] == alt[0] && genotype[1] == alt[0];
-        bool is_heterozygous = has_variant && !is_homozygous;
-        bool has_ref_only = strlen(genotype) == 2 &&
-                            genotype[0] == ref[0] && genotype[1] == ref[0];
-
-        if (has_ref_only || !has_variant)
-            continue;
+        bool has_variant, is_homozygous, is_heterozygous;
+        if (indel) {
+            /* An indel record is read only against an array's D/I call,
+             * never against bases, and the call only says which allele is
+             * shorter: a record whose alleles are the same length (an MNV)
+             * or are not plain sequences cannot be judged from it. Deletion
+             * records (alt shorter) make D the variant allele, insertion
+             * records make I the variant allele. */
+            if (!gh_genotype_indel(genotype) || !all_bases(ref) || !all_bases(alt) ||
+                strlen(ref) == strlen(alt))
+                continue;
+            const char variant_allele = strlen(alt) < strlen(ref) ? 'D' : 'I';
+            has_variant = strchr(genotype, variant_allele) != NULL;
+            is_homozygous = strlen(genotype) == 2 &&
+                            genotype[0] == variant_allele && genotype[1] == variant_allele;
+            is_heterozygous = has_variant && !is_homozygous;
+            if (!has_variant)
+                continue;
+        } else {
+            /* A base call against a single-base substitution; a D/I call
+             * contains no base and falls through as "no variant". */
+            has_variant = strchr(genotype, alt[0]) != NULL;
+            is_homozygous = strlen(genotype) == 2 &&
+                            genotype[0] == alt[0] && genotype[1] == alt[0];
+            is_heterozygous = has_variant && !is_homozygous;
+            bool has_ref_only = strlen(genotype) == 2 &&
+                                genotype[0] == ref[0] && genotype[1] == ref[0];
+            if (has_ref_only || !has_variant)
+                continue;
+        }
 
         const char *raw_sig = gh_tsv_at(&tsv, c_sig);
         const char *sig = normalise_significance(arena, raw_sig);
@@ -248,7 +293,33 @@ bool gh_clinvar_analyze(gh_clinvar_result *out, gh_arena *arena,
             continue;
 
         f->category = (gh_cv_category)category;
+        f->is_indel = indel;
+        if (indel) {
+            size_t alen = strlen(ref) + 1 + strlen(alt);
+            char *alleles = gh_alloc(arena, alen + 1);
+            snprintf(alleles, alen + 1, "%s>%s", ref, alt);
+            const char *seen = gh_map_get(&indel_alleles, f->rsid);
+            if (!seen)
+                gh_map_put(&indel_alleles, f->rsid, alleles);
+            else if (strcmp(seen, alleles) != 0)
+                gh_map_put(&indel_ambiguous, f->rsid, alleles);
+        }
         list_push(&lists[category], arena, f);
+    }
+
+    /* Drop the indel findings on an rsID that carries more than one
+     * distinct indel: the array's D does not say which one was seen. */
+    if (gh_map_len(&indel_ambiguous)) {
+        for (size_t i = 0; i < GH_CV_CATEGORY_COUNT; i++) {
+            size_t kept = 0;
+            for (size_t j = 0; j < lists[i].count; j++) {
+                gh_cv_finding *f = lists[i].items[j];
+                if (f->is_indel && gh_map_has(&indel_ambiguous, f->rsid))
+                    continue;
+                lists[i].items[kept++] = f;
+            }
+            lists[i].count = kept;
+        }
     }
 
     out->by_category = gh_calloc(arena, GH_CV_CATEGORY_COUNT,

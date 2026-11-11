@@ -6,14 +6,19 @@
 
 namespace {
 
+// One or two bases, or one or two indel letters (D = deletion allele, I =
+// insertion allele, the way arrays write the indels they probe); a base
+// beside an indel letter is not a genotype. Mirrors gh_genotype_valid.
 bool isBases(const QString &s)
 {
     if (s.isEmpty() || s.size() > 2)
         return false;
-    for (QChar c : s)
-        if (c != 'A' && c != 'C' && c != 'G' && c != 'T')
-            return false;
-    return true;
+    bool bases = true, indel = true;
+    for (QChar c : s) {
+        bases = bases && (c == 'A' || c == 'C' || c == 'G' || c == 'T');
+        indel = indel && (c == 'D' || c == 'I');
+    }
+    return bases || indel;
 }
 
 } // namespace

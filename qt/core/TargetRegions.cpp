@@ -62,9 +62,16 @@ qint64 build(const QString &clinvarTsv, const QString &lookupJson, const QString
     if (cv.open(QIODevice::ReadOnly)) {
         TsvTable table(&cv);
         const int cChrom = table.column("chrom"), cPos = table.column("pos");
+        const int cRef = table.column("ref"), cAlt = table.column("alt");
         qint64 rows = 0;
         while (table.next()) {
-            add(table.field(cChrom), table.field(cPos));
+            const QString chrom = table.field(cChrom), pos = table.field(cPos);
+            add(chrom, pos);
+            // The caller reports an indel at the anchor base before the
+            // change, so that position has to be in the targets too.
+            if (cRef >= 0 && cAlt >= 0 && allDigits(pos) &&
+                (table.field(cRef).size() != 1 || table.field(cAlt).size() != 1))
+                add(chrom, QString::number(pos.toLongLong() - 1));
             if ((++rows & 0xFFFFF) == 0 && reporter.cancelled()) {
                 if (error)
                     *error = QStringLiteral("cancelled");

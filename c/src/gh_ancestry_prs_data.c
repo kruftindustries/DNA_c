@@ -31,7 +31,7 @@ const gh_aim GH_AIMS[] = {
     {"rs776746", "CYP3A5", "CYP3A5 expresser status", 'T', {0.065, 0.68, 0.27, 0.35, 0.23}},
     {"rs4149056", "SLCO1B1", "Statin transporter", 'C', {0.155, 0.02, 0.12, 0.06, 0.09}},
     {"rs17822931", "ABCC11", "Earwax type / body odor", 'T', {0.12, 0.018, 0.92, 0.35, 0.46}},
-    {"rs8176719", "ABO", "Blood type O", 'T', {0.63, 0.7, 0.55, 0.59, 0.68}},
+    {"rs8176719", "ABO", "Blood type O", 'D', {0.63, 0.7, 0.55, 0.59, 0.68}},   /* the O deletion; arrays write it as D */
     {"rs12075", "DARC", "Duffy antigen receptor variant", 'A', {0.427, 0.87, 0.04, 0.27, 0.42}},
     {"rs2395029", "HLA-B", "HLA allele \342\200\224 HIV progression", 'G', {0.056, 0.003, 0.001, 0.01, 0.025}},
     {"rs1801133", "MTHFR", "Folate metabolism", 'A', {0.34, 0.09, 0.29, 0.16, 0.45}},

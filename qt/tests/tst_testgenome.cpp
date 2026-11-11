@@ -34,9 +34,11 @@ private slots:
         // Homozygous reference at an indel record is still the reference base.
         QCOMPARE(genotypeFromCall("C", {"CT"}, "0|0", 0), QString("CC"));
         QCOMPARE(genotypeFromCall("CTT", {"C"}, "0|0", 2), QString("TT"));
-        // A carried indel allele has no base at this position.
-        QCOMPARE(genotypeFromCall("C", {"CT"}, "0|1", 0), QString());
-        QCOMPARE(genotypeFromCall("CTT", {"C"}, "1|1", 1), QString());
+        // A carried indel allele is written as an array calls it: D for the
+        // shorter allele, I for the longer (insertion record: REF is D).
+        QCOMPARE(genotypeFromCall("C", {"CT"}, "0|1", 0), QString("DI"));
+        QCOMPARE(genotypeFromCall("CTT", {"C"}, "1|1", 1), QString("DD"));
+        QCOMPARE(genotypeFromCall("CTT", {"C"}, "0/1", 1), QString("ID"));
         // Copy-number and symbolic alleles cannot be written either.
         QCOMPARE(genotypeFromCall("T", {"<CN0>", "C"}, "0|1", 0), QString());
         QCOMPARE(genotypeFromCall("T", {"<CN0>", "C"}, "0|2", 0), QString("TC"));

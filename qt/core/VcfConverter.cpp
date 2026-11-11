@@ -10,6 +10,20 @@
 
 namespace VcfConverter {
 
+namespace {
+
+bool isBases(const QByteArray &s)
+{
+    if (s.isEmpty())
+        return false;
+    for (char c : s)
+        if (c != 'A' && c != 'C' && c != 'G' && c != 'T')
+            return false;
+    return true;
+}
+
+} // namespace
+
 qint64 convert(const QString &vcfPath, const QString &genomeOut, const QString &lookupJson,
                const Reporter &reporter, QString *error)
 {
@@ -72,13 +86,17 @@ qint64 convert(const QString &vcfPath, const QString &genomeOut, const QString &
         const QByteArray chrom = fields[0], pos = fields[1], vid = fields[2];
         const QByteArray ref = fields[3], alt = fields[4];
         const QList<QByteArray> alts = alt.split(',');
-        if (ref.size() != 1)
-            continue;
-        bool snv = true;
+        bool snv = ref.size() == 1;
         for (const QByteArray &a : alts)
             if (a.size() != 1)
                 snv = false;
-        if (!snv)
+        // A biallelic indel is written the way an array would call it: D
+        // for the shorter allele, I for the longer. Several alternate
+        // alleles, or alleles of equal length (an MNV), have no such
+        // spelling and are dropped as before.
+        const bool indel = !snv && alts.size() == 1 && ref.size() != alts[0].size() &&
+                           isBases(ref) && isBases(alts[0]);
+        if (!snv && !indel)
             continue;
 
         const QList<QByteArray> fmt = fields[8].split(':');
@@ -94,6 +112,10 @@ qint64 convert(const QString &vcfPath, const QString &genomeOut, const QString &
 
         QList<QByteArray> alleles{ref};
         alleles += alts;
+        if (indel) {
+            const bool refShorter = ref.size() < alts[0].size();
+            alleles = {refShorter ? "D" : "I", refShorter ? "I" : "D"};
+        }
         bool ok1 = false, ok2 = false;
         const int i1 = parts[0].toInt(&ok1), i2 = parts[1].toInt(&ok2);
         if (!ok1 || !ok2 || i1 < 0 || i2 < 0 || i1 >= alleles.size() || i2 >= alleles.size())
@@ -102,17 +124,23 @@ qint64 convert(const QString &vcfPath, const QString &genomeOut, const QString &
 
         QByteArray rsid;
         const QByteArray posKey = chrom + ':' + pos;
+        // dbSNP places an indel on the first changed base, one past the
+        // VCF anchor the caller reports it at.
+        const QByteArray nextKey = chrom + ':' + QByteArray::number(pos.toLongLong() + 1);
         if (vid != "." && vid.startsWith("rs"))
             rsid = vid;
         else if (posToRsid.contains(posKey))
             rsid = posToRsid.value(posKey);
+        else if (indel && posToRsid.contains(nextKey))
+            rsid = posToRsid.value(nextKey);
         else
             rsid = "chr" + chrom + '_' + pos;
 
         out.write(rsid + '\t' + chrom + '\t' + pos + '\t' + genotype + '\n');
         count++;
     }
-    reporter.log(QStringLiteral("  Converted %L1 SNPs to 23andMe format -> %2").arg(count).arg(genomeOut));
+    reporter.log(QStringLiteral("  Converted %L1 variants (SNVs and D/I indel calls) to 23andMe format -> %2")
+                     .arg(count).arg(genomeOut));
     return count;
 }
 

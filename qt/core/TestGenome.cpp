@@ -534,12 +534,31 @@ QString genotypeFromCall(const QString &ref, const QStringList &alts, const QStr
     alleles += alts;
     if (offset < 0 || offset >= ref.size())
         return QString();
-    QString g;
+    QList<int> calls;
     for (const QString &i : gt.split(QRegularExpression("[|/]"))) {
         bool ok;
         const int k = i.toInt(&ok);
         if (!ok || k < 0 || k >= alleles.size())
             return QString();
+        calls << k;
+    }
+    // A carried allele of a biallelic indel record is written as an array
+    // would call it: D for the shorter allele, I for the longer. (Homozygous
+    // reference keeps the reference base: the site may be an SNV that a
+    // deletion record merely spans.)
+    const bool indel = alts.size() == 1 && alts[0].size() != ref.size() &&
+                       !alts[0].startsWith('<') && !alts[0].contains('*');
+    bool carried = false;
+    for (int k : calls)
+        carried = carried || k != 0;
+    QString g;
+    if (indel && carried) {
+        const bool refShorter = ref.size() < alts[0].size();
+        for (int k : calls)
+            g += (k == 0) == refShorter ? 'D' : 'I';
+        return g;
+    }
+    for (int k : calls) {
         const QString &allele = alleles[k];
         // The reference allele is the reference sequence whatever the record
         // describes; an alternate allele only names a base at this offset

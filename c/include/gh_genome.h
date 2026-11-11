@@ -55,6 +55,9 @@ bool gh_load_rsid_positions(gh_map *out, gh_arena *arena, const char *path);
 /* True if `s` is one or two characters, all of A/C/G/T. */
 bool gh_genotype_valid(const char *s);
 
+/* True when every letter is D or I: an array's spelling of an indel call. */
+bool gh_genotype_indel(const char *s);
+
 /* ------------------------------------------------------------------ */
 /* Row classification, shared with gh_quality                          */
 /* ------------------------------------------------------------------ */

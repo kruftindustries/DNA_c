@@ -17,6 +17,27 @@ static bool is_base(char c)
     return c == 'A' || c == 'C' || c == 'G' || c == 'T';
 }
 
+/* A genotype is one or two bases, or one or two indel letters: 23andMe
+ * writes D (deletion allele) and I (insertion allele) for the indels it
+ * genotypes -- DD, DI, II -- and AncestryDNA puts the same letters in its
+ * allele columns. A base beside an indel letter means nothing. Until these
+ * were accepted every indel call was dropped as malformed, so CFTR F508del
+ * and the ACE I/D polymorphism never reached a report. */
+static bool is_indel_letter(char c)
+{
+    return c == 'D' || c == 'I';
+}
+
+bool gh_genotype_indel(const char *s)
+{
+    if (!s || !*s)
+        return false;
+    for (; *s; s++)
+        if (!is_indel_letter(*s))
+            return false;
+    return true;
+}
+
 bool gh_genotype_valid(const char *s)
 {
     if (!s)
@@ -24,10 +45,12 @@ bool gh_genotype_valid(const char *s)
     size_t n = strlen(s);
     if (n < 1 || n > 2)
         return false;
-    for (size_t i = 0; i < n; i++)
-        if (!is_base(s[i]))
-            return false;
-    return true;
+    bool bases = true, indel = true;
+    for (size_t i = 0; i < n; i++) {
+        bases = bases && is_base(s[i]);
+        indel = indel && is_indel_letter(s[i]);
+    }
+    return bases || indel;
 }
 
 /* ------------------------------------------------------------------ */

@@ -37,6 +37,14 @@ int goldStars(const QString &reviewStatus)
     return 0;
 }
 
+// variant_summary's RS# (dbSNP) is a bare number, -1 when there is none.
+static QString rsidField(const QString &rs)
+{
+    bool ok = false;
+    const qlonglong n = rs.trimmed().toLongLong(&ok);
+    return ok && n > 0 ? QStringLiteral("rs%1").arg(n) : QString();
+}
+
 bool process(const QString &gzPath, const QString &tsvPath, Stats *stats,
              const Reporter &reporter, QString *error)
 {
@@ -65,6 +73,11 @@ bool process(const QString &gzPath, const QString &tsvPath, Stats *stats,
         "review_status", "gold_stars", "all_traits", "symbol",
         "inheritance_modes", "hgvs_p", "hgvs_c",
         "molecular_consequence", "xrefs",
+        // Since 0.3: "rs" + RS# (dbSNP), or empty. The engine matches indel
+        // records through it, since the position an array gives an indel
+        // and ClinVar's VCF-style anchor need not agree; SNVs still match
+        // by position, so an older extract keeps working.
+        "rsid",
     };
     out.write(tsvRow(outputFields));
 
@@ -84,6 +97,7 @@ bool process(const QString &gzPath, const QString &tsvPath, Stats *stats,
     const int cHgvsC = table.column("HGVS(c)");
     const int cCons = table.column("MolecularConsequence");
     const int cXrefs = table.column("OtherIDs");
+    const int cRs = table.column("RS# (dbSNP)");
 
     Stats local;
     const qint64 inputSize = QFileInfo(gzPath).size();
@@ -116,6 +130,7 @@ bool process(const QString &gzPath, const QString &tsvPath, Stats *stats,
             cHgvsP >= 0 ? table.field(cHgvsP) : QString(),
             cHgvsC >= 0 ? table.field(cHgvsC) : QString(),
             table.field(cCons), table.field(cXrefs),
+            rsidField(cRs >= 0 ? table.field(cRs) : QString()),
         }));
         local.written++;
     }

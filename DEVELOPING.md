@@ -138,4 +138,10 @@ Linux and macOS builds tell the user the package-manager command.
 Magnitude 0 informational, 1 low, 2 moderate, 3 actionable, 4–6 clinical
 attention. ClinVar gold stars 4 (expert panel) down to 0 (no criteria).
 Heterozygous findings in recessive genes are carrier status. Not a clinical
-diagnosis; most evidence is European-biased; indels are not analysed.
+diagnosis; most evidence is European-biased. Indel calls are read as the
+D/I letters arrays write (loader: `gh_genotype_valid`); ClinPGx entries get
+D/I keys derived from their `del` rows (`derive_indel_keys`), ClinVar indel
+records are matched by rsID from the extract's `rsid` column and only when
+the rsID has a single indel (`gh_clinvar.c`), the WGS converter writes D/I
+for biallelic indel calls, and `make check-indels` lists the indel-form
+entries across the data and which of them the engine can meet.

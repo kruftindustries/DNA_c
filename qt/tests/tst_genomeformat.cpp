@@ -89,6 +89,11 @@ private slots:
         QCOMPARE(classifyRow({"rs1", "1", "100", "0", "0"}), RowKind::NoCall);
         QCOMPARE(classifyRow({"rs1", "1", "100", "A", "0"}), RowKind::NoCall);
         QCOMPARE(classifyRow({"rs1", "1", "100", "N", "N"}), RowKind::Invalid);
+        // Indel calls (D = deletion allele, I = insertion allele) are genotypes.
+        QCOMPARE(classifyRow({"rs113993960", "7", "117199645", "DI"}), RowKind::Ok23andMe);
+        QCOMPARE(classifyRow({"rs1799752", "17", "61565891", "DD"}), RowKind::Ok23andMe);
+        QCOMPARE(classifyRow({"rs113993960", "7", "117199645", "D", "I"}), RowKind::OkAncestry);
+        QCOMPARE(classifyRow({"rs1", "1", "100", "AD"}), RowKind::Invalid);
         // The vendor header is not a genotype and must not look like one.
         QCOMPARE(classifyRow({"rsid", "chromosome", "position", "allele1", "allele2"}),
                  RowKind::Invalid);

@@ -76,6 +76,7 @@ typedef struct {
     const char *zygosity;         /* human-readable description */
     const char *zygosity_status;  /* AFFECTED / CARRIER / HETEROZYGOUS / UNKNOWN */
     gh_cv_category category;
+    bool is_indel;                /* matched from a D/I array call, not a base */
 } gh_cv_finding;
 
 typedef struct {
